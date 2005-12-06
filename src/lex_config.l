@@ -15,6 +15,7 @@
  */
 
 #undef src
+#undef VERSION
 
 #include <stdio.h>
 #include <stdlib.h>

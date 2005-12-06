@@ -223,22 +223,30 @@ static void adjust_resources(unsigned int socket_no)
 int main(int argc, char *argv[])
 {
 	char *socket_no;
-	unsigned long socket;
+	unsigned long socket, i;
+	unsigned int all_sockets = 0;
 
 
 	if ((socket_no = getenv("SOCKET_NO"))) {
 		socket = strtoul(socket_no, NULL, 0);
 	} else if (argc == 2) {
 		socket = strtoul(argv[1], NULL, 0);
+	} else if (argc == 1) {
+		socket = 0;
+		all_sockets = 1;
 	} else {
 		return -EINVAL;
 	}
 
 	load_config();
 
-	adjust_resources(socket);
+	for (i = 0; i < MAX_SOCKS; i++) {
+		if ((socket != i) && (!all_sockets))
+			continue;
 
-	setup_done(socket);
+		adjust_resources(i);
+		setup_done(i);
+	}
 
 	return 0;
 }

@@ -26,6 +26,37 @@
 #define MAX_SOCKET 8
 
 
+static int pccardctl_power_one(unsigned long socket_no, unsigned int device,
+			       unsigned int power)
+{
+	int ret;
+	char file[SYSFS_PATH_MAX];
+        struct sysfs_attribute *attr;
+
+	snprintf(file, SYSFS_PATH_MAX,
+		 "/sys/bus/pcmcia/devices/%lu.%u/power/state",
+		 socket_no, device);
+
+        attr = sysfs_open_attribute(file);
+        if (!attr)
+                return -ENODEV;
+
+        ret = sysfs_write_attribute(attr, power ? "3" : "0", 1);
+
+        sysfs_close_attribute(attr);
+
+	return (ret);
+}
+
+static int pccardctl_power(unsigned long socket_no, unsigned int power)
+{
+	unsigned int i;
+	for (i=0; i<2; i++) /* max 2 devices per socket */
+		pccardctl_power_one(socket_no, i, power);
+
+	return 0;
+}
+
 static int pccardctl_echo_one(unsigned long socket_no, const char *in_file)
 {
         int ret;
@@ -187,12 +218,31 @@ static int pccardctl_info(unsigned long socket_no)
 }
 
 static void print_header(void) {
-	printf("pccardctl (C) 2004 Dominik Brodowski, (C) 1999 David A. Hinds\n");
+	printf("pcmciautils %s\n", VERSION);
+	printf("Copyright (C) 2004-2005 Dominik Brodowski, (C) 1999 David A. Hinds\n");
 	printf("Report errors and bugs to <linux-pcmcia@lists.infradead.org>, please.\n");
 }
 
+static char *cmdname[] = {
+	"insert",
+	"eject",
+	"suspend",
+	"resume",
+	"reset",
+	"info",
+	"status",
+	"config",
+	"ident",
+};
+
 static void print_help(void) {
-	/* TBD */
+	unsigned int i;
+
+	printf("Usage: pccardctl COMMAND\n");
+	printf("Supported commands are:\n");
+	for (i = 0; i < sizeof(cmdname)/sizeof(cmdname[0]); i++) {
+		printf("\t%s\n", cmdname[i]);
+	}
 }
 
 static void print_unknown_arg(void) {
@@ -219,18 +269,6 @@ enum {
 	PCCARDCTL_CONFIG,
 	PCCARDCTL_IDENT,
 	NCMD
-};
-
-static char *cmdname[] = {
-	"insert",
-	"eject",
-	"suspend",
-	"resume",
-	"reset",
-	"info",
-	"status",
-	"config",
-	"ident",
 };
 
 
@@ -315,6 +353,17 @@ int main(int argc, char **argv) {
 			break;
 		case PCCARDCTL_IDENT:
 			ret = pccardctl_ident(cont);
+			break;
+		case PCCARDCTL_SUSPEND:
+			ret = pccardctl_power(cont, 3);
+			break;
+		case PCCARDCTL_RESET:
+			ret = pccardctl_power(cont, 3);
+			if (ret && socket_is_set)
+				return (ret);
+			/* fall through */
+		case PCCARDCTL_RESUME:
+			ret = pccardctl_power(cont, 0);
 			break;
 		default:
 			fprintf(stderr, "command '%s' not yet handled by pccardctl\n", cmdname[cmd]);
