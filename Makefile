@@ -31,7 +31,7 @@ STARTUP = true
 
 # Set this to true if you want to use 'udev' instead of 'hotplug'
 # to invoke the necessary pcmciautils commands.
-UDEV = false
+UDEV = true
 
 # Set the following to `true' to log the debug
 # and make a unstripped, unoptimized  binary.
@@ -44,7 +44,7 @@ PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
 CBDUMP =			cbdump
 CISDUMP =			dump_cis
 
-VERSION =	010
+VERSION =	011
 #INSTALL_DIR =	/usr/local/sbin
 RELEASE_NAME =	pcmciautils-$(VERSION)
 
@@ -57,6 +57,7 @@ prefix =
 exec_prefix =	${prefix}
 etcdir =	${prefix}/etc
 sbindir =	${exec_prefix}/sbin
+mandir =	${prefix}/usr/share/man
 srcdir = .
 
 INSTALL = /usr/bin/install -c
@@ -169,12 +170,12 @@ else
 	UNINSTALL_TARGETS = uninstall-udev
 endif
 
+
+
 # if STARTUP is disabled, we can skip a few things
 ifeq ($(strip $(STARTUP)),false)
-	UDEV_RULES = udev/60-pcmcia.rules.static
 	PCMCIA_SOCKET_STARTUP_BUILD =
 else
-	UDEV_RULES = udev/60-pcmcia.rules
 	PCMCIA_SOCKET_STARTUP_BUILD = $(PCMCIA_SOCKET_STARTUP)
 	INSTALL_TARGETS += install-config install-socket-tools
 	UNINSTALL_TARGETS += uninstall-socket-tools
@@ -184,8 +185,15 @@ else
 	endif
 endif
 
+#udev rules collection
+UDEV_RULES_FILE = udev/60-pcmcia.rules
+UDEV_RULES = udev/rules-start udev/rules-modprobe udev/rules-base
+ifneq ($(strip $(STARTUP)),false)
+	UDEV_RULES += udev/rules-nonstaticsocket
+endif
 
-all: ccdv $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP_BUILD)
+
+all: ccdv $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP_BUILD) udevrules
 
 ccdv:
 	@echo "Building ccdv"
@@ -199,7 +207,6 @@ ccdv:
 	mv y.tab.c $*.c
 	mv y.tab.h $*.h
 
-	
 $(PCCARDCTL): $(LIBC) src/$(PCCARDCTL).o $(OBJS) $(HEADERS)
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCCARDCTL).o $(LIB_OBJS) $(ARCH_LIB_OBJS)
 	$(QUIET) $(STRIPCMD) $@
@@ -214,7 +221,7 @@ $(PCMCIA_SOCKET_STARTUP): $(LIBC) src/startup.o src/yacc_config.o src/lex_config
 
 yacc_config.o lex_config.o: %.o: %.c
 	$(CC) -c -MD -O -pipe $(CPPFLAGS) $<
-	
+
 debugtools: ccdv $(CBDUMP) $(CISDUMP)
 
 $(CBDUMP): $(LIBC) debug/cbdump.o
@@ -225,12 +232,16 @@ $(CISDUMP): $(LIBC) src/read-cis.o debug/parse_cis.o debug/dump_cis.o
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) debug/$(CISDUMP).o src/read-cis.o debug/parse_cis.o $(LIB_OBJS) $(ARCH_LIB_OBJS)
 	$(QUIET) $(STRIPCMD) $@
 
+udevrules:
+	cat $(UDEV_RULES) > $(UDEV_RULES_FILE)
+
 clean:
 	-find . \( -not -type d \) -and \( -name '*~' -o -name '*.[oas]' \) -type f -print \
 	 | xargs rm -f 
 	-rm -f $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP)
 	-rm -f $(CBDUMP) $(CISDUMP)
 	-rm -f src/yacc_config.c src/yacc_config.d src/lex_config.c src/lex_config.d src/yacc_config.h
+	-rm -f udev/60-pcmcia.rules
 	-rm -f build/ccdv
 
 install-hotplug:
@@ -239,19 +250,19 @@ install-hotplug:
 	$(INSTALL_PROGRAM) -D hotplug/pcmcia.rc $(DESTDIR)$(hotplugdir)/pcmcia.rc
 
 uninstall-hotplug:
-	- rm -f $(hotplugdir)/pcmcia.agent $(hotplugdir)/pcmcia.rc
+	- rm -f $(DESTDIR)$(hotplugdir)/pcmcia.agent $(DESTDIR)$(hotplugdir)/pcmcia.rc
 
 install-socket-hotplug:
 	$(INSTALL_PROGRAM) -D hotplug/pcmcia_socket.agent $(DESTDIR)$(hotplugdir)/pcmcia_socket.agent
 	$(INSTALL_PROGRAM) -D hotplug/pcmcia_socket.rc $(DESTDIR)$(hotplugdir)/pcmcia_socket.rc
 
 uninstall-socket-hotplug:
-	- rm -f $(hotplugdir)/pcmcia_socket.agent $(hotplugdir)/pcmcia_socket.rc
+	- rm -f $(DESTDIR)$(hotplugdir)/pcmcia_socket.agent $(DESTDIR)$(hotplugdir)/pcmcia_socket.rc
 install-socket-tools:
 	$(INSTALL_PROGRAM) -D $(PCMCIA_SOCKET_STARTUP) $(DESTDIR)$(sbindir)/$(PCMCIA_SOCKET_STARTUP)
 
 uninstall-socket-tools:
-	- rm -f $(sbindir)/$(PCMCIA_SOCKET_STARTUP)
+	- rm -f $(DESTDIR)$(sbindir)/$(PCMCIA_SOCKET_STARTUP)
 
 install-tools:
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
@@ -260,22 +271,29 @@ install-tools:
 
 
 uninstall-tools:
-	- rm -f $(sbindir)/$(PCCARDCTL)
-	- rm -f $(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
+	- rm -f $(DESTDIR)$(sbindir)/$(PCCARDCTL)
+	- rm -f $(DESTDIR)$(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
 
 install-config:
 	$(INSTALL) -d $(DESTDIR)$(pcmciaconfdir)
 	$(INSTALL_DATA)  -D config/config.opts $(DESTDIR)$(pcmciaconfdir)/config.opts
 
 uninstall-config:
-#	- rm -f $(pcmciaconfdir)/config.opts
+#	- rm -f $(DESTDIR)$(pcmciaconfdir)/config.opts
 
 install-udev:
-	$(INSTALL_DATA) -D $(UDEV_RULES) $(DESTDIR)$(udevrulesdir)/60-pcmcia.rules
-	
+	$(INSTALL_DATA) -D $(UDEV_RULES_FILE) $(DESTDIR)$(udevrulesdir)/60-pcmcia.rules
+
 uninstall-udev:
-	- rm -f $(udevrulesdir)/60-pcmcia.rules
+	- rm -f $(DESTDIR)$(udevrulesdir)/60-pcmcia.rules
 
-install: install-tools $(INSTALL_TARGETS)
+install-man:
+	$(INSTALL_DATA) -D man/man8/pccardctl.8 $(DESTDIR)$(mandir)/man8/pccardctl.8
 
-uninstall: uninstall-tools $(UNINSTALL_TARGETS)
+uninstall-man:
+	- rm $(DESTDIR)$(mandir)/man8/pccardctl.8
+
+
+install: install-tools install-man $(INSTALL_TARGETS)
+
+uninstall: uninstall-tools uninstall-man $(UNINSTALL_TARGETS)

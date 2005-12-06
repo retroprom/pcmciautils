@@ -41,7 +41,7 @@ static int pccardctl_power_one(unsigned long socket_no, unsigned int device,
         if (!attr)
                 return -ENODEV;
 
-        ret = sysfs_write_attribute(attr, power ? "3" : "0", 1);
+        ret = sysfs_write_attribute(attr, power ? "2" : "0", 1);
 
         sysfs_close_attribute(attr);
 

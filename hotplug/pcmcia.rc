@@ -22,7 +22,7 @@ pcmcia_boot_events ()
 		continue;
 	    fi;
 	    MODALIAS=$(cat $PCMCIA_DEVICE/modalias)
-	    debug_mesg $MODALIAS $PCMICA_DEVICE
+	    debug_mesg $MODALIAS $PCMCIA_DEVICE
 	    if [ -z $MODALIAS ]; then
 		continue;
 	    fi;

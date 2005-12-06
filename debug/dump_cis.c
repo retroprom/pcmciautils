@@ -942,14 +942,12 @@ static int parse_cis_one_socket(unsigned int socket_no, FILE *fd)
 			print_tuple(&tuple);
 
 		ret = pccard_parse_tuple(&tuple, &parse);
-		if (ret) {
+		if (ret)
 			printf("invalid tuple\n");
-			continue;
+		else {
+			print_parse(&tuple, &parse);
+			printf("\n");
 		}
-
-		print_parse(&tuple, &parse);
-
-		printf("\n");
 
 		ret = pcmcia_get_next_tuple(BIND_FN_ALL, &tuple);
 		if (ret)
