@@ -21,7 +21,7 @@ pcmcia_boot_events ()
 	    if [ $PCMCIA_DEVICE == \* ]; then
 		continue;
 	    fi;
-	    MODALIAS=$(pcmcia-modalias $PCMCIA_DEVICE)
+	    MODALIAS=$(cat $PCMCIA_DEVICE/modalias)
 	    debug_mesg $MODALIAS $PCMICA_DEVICE
 	    if [ -z $MODALIAS ]; then
 		continue;

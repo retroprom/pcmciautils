@@ -188,7 +188,7 @@ static int pccardctl_info(unsigned long socket_no)
 
 static void print_header(void) {
 	printf("pccardctl (C) 2004 Dominik Brodowski, (C) 1999 David A. Hinds\n");
-	printf(gettext ("Report errors and bugs to <linux-pcmcia@lists.infradead.org>, please.\n"));
+	printf("Report errors and bugs to <linux-pcmcia@lists.infradead.org>, please.\n");
 }
 
 static void print_help(void) {
@@ -197,7 +197,7 @@ static void print_help(void) {
 
 static void print_unknown_arg(void) {
 	print_header();
-	printf(gettext ("invalid or unknown argument\n"));
+	printf("invalid or unknown argument\n");
 	print_help();
 }
 

@@ -20,6 +20,15 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
+# Set this to 'false' if you do need the socket-startup script
+# 
+# You don't need it if the socket driver does not select
+# PCCARD_NONSTATIC -- that is the case for many embedded systems --
+# and for yenta_socket if the cardbus bridge is either below a
+# PCI-PCI bridge, or where the PCI bus is not equivalent to the host
+# bus (e.g. on PPC)
+STARTUP = true
+
 # Set the following to `true' to log the debug
 # and make a unstripped, unoptimized  binary.
 # Leave this set to `false' for production use.
@@ -27,12 +36,11 @@ DEBUG = false
 
 PCCARDCTL =			pccardctl
 PCMCIA_CHECK_BROKEN_CIS =	pcmcia-check-broken-cis
-PCMCIA_MODALIAS =		pcmcia-modalias
 PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
 CBDUMP =			cbdump
 CISDUMP =			dump_cis
 
-VERSION =	003
+VERSION =	004
 #INSTALL_DIR =	/usr/local/sbin
 RELEASE_NAME =	pcmciautils-$(VERSION)
 
@@ -111,7 +119,6 @@ OBJS = \
 	src/lex_config.l		\
 	src/pccardctl.c			\
 	src/pcmcia-check-broken-cis.c	\
-	src/pcmcia-modalias.c		\
 	src/read-cis.c			\
 	src/startup.c			\
 	src/startup.h			\
@@ -144,9 +151,20 @@ else
 	LDFLAGS += -s -Wl,-warn-common
 	STRIPCMD = $(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
-                                                
 
-all: ccdv $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_MODALIAS) $(PCMCIA_SOCKET_STARTUP)
+# if STARTUP is disabled, we can skip a few things
+ifeq ($(strip $(STARTUP)),false)
+	PCMCIA_SOCKET_STARTUP_BUILD =
+	INSTALL_TARGETS = 
+	UNINSTALL_TARGETS =
+else
+	PCMCIA_SOCKET_STARTUP_BUILD = $(PCMCIA_SOCKET_STARTUP)
+	INSTALL_TARGETS = install-config install-socket-hotplug install-socket-tools
+	UNINSTALL_TARGETS = uninstall-socket-hotplug uninstall-socket-tools
+endif
+
+
+all: ccdv $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP_BUILD)
 
 ccdv:
 	@echo "Building ccdv"
@@ -161,10 +179,6 @@ $(PCCARDCTL): $(LIBC) src/$(PCCARDCTL).o $(OBJS) $(HEADERS)
 
 $(PCMCIA_CHECK_BROKEN_CIS): $(LIBC) src/$(PCMCIA_CHECK_BROKEN_CIS).o src/read-cis.o $(OBJS) $(HEADERS)
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCMCIA_CHECK_BROKEN_CIS).o src/read-cis.o $(LIB_OBJS) $(ARCH_LIB_OBJS)
-	$(QUIET) $(STRIPCMD) $@
-
-$(PCMCIA_MODALIAS): $(LIBC) src/$(PCMCIA_MODALIAS).o $(OBJS) $(HEADERS)
-	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCMCIA_MODALIAS).o $(LIB_OBJS) $(ARCH_LIB_OBJS)
 	$(QUIET) $(STRIPCMD) $@
 
 $(PCMCIA_SOCKET_STARTUP): $(LIBC) src/startup.o src/yacc_config.o src/lex_config.o $(OBJS) $(HEADERS)
@@ -187,7 +201,7 @@ $(CISDUMP): $(LIBC) src/read-cis.o debug/parse_cis.o debug/dump_cis.o
 clean:
 	-find . \( -not -type d \) -and \( -name '*~' -o -name '*.[oas]' \) -type f -print \
 	 | xargs rm -f 
-	-rm -f $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_MODALIAS) $(PCMCIA_SOCKET_STARTUP)
+	-rm -f $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP)
 	-rm -f $(CBDUMP) $(CISDUMP)
 	-rm -f src/yacc_config.c src/yacc_config.d src/lex_config.c src/lex_config.d
 	-rm -f build/ccdv
@@ -196,23 +210,29 @@ install-hotplug:
 	$(INSTALL) -d $(DESTDIR)$(hotplugdir)
 	$(INSTALL_PROGRAM) -D hotplug/pcmcia.agent $(DESTDIR)$(hotplugdir)/pcmcia.agent
 	$(INSTALL_PROGRAM) -D hotplug/pcmcia.rc $(DESTDIR)$(hotplugdir)/pcmcia.rc
-	$(INSTALL_PROGRAM) -D hotplug/pcmcia_socket.agent $(DESTDIR)$(hotplugdir)/pcmcia_socket.agent
-	$(INSTALL_PROGRAM) -D hotplug/pcmcia_socket.rc $(DESTDIR)$(hotplugdir)/pcmcia_socket.rc
 
 uninstall-hotplug:
 	- rm -f $(hotplugdir)/pcmcia.agent $(hotplugdir)/pcmcia.rc
+
+install-socket-hotplug:
+	$(INSTALL_PROGRAM) -D hotplug/pcmcia_socket.agent $(DESTDIR)$(hotplugdir)/pcmcia_socket.agent
+	$(INSTALL_PROGRAM) -D hotplug/pcmcia_socket.rc $(DESTDIR)$(hotplugdir)/pcmcia_socket.rc
+
+uninstall-socket-hotplug:
 	- rm -f $(hotplugdir)/pcmcia_socket.agent $(hotplugdir)/pcmcia_socket.rc
+install-socket-tools:
+	$(INSTALL_PROGRAM) -D $(PCMCIA_SOCKET_STARTUP) $(DESTDIR)$(sbindir)/$(PCMCIA_SOCKET_STARTUP)
+
+uninstall-socket-tools:
+	- rm -f $(sbindir)/$(PCMCIA_SOCKET_STARTUP)
 
 install-tools:
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
-	$(INSTALL_PROGRAM) -D $(PCMCIA_MODALIAS) $(DESTDIR)$(sbindir)/$(PCMCIA_MODALIAS)
-	$(INSTALL_PROGRAM) -D $(PCMCIA_SOCKET_STARTUP) $(DESTDIR)$(sbindir)/$(PCMCIA_SOCKET_STARTUP)
 	$(INSTALL_PROGRAM) -D $(PCCARDCTL) $(DESTDIR)$(sbindir)/$(PCCARDCTL)
 	$(INSTALL_PROGRAM) -D $(PCMCIA_CHECK_BROKEN_CIS) $(DESTDIR)$(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
 
+
 uninstall-tools:
-	- rm -f $(sbindir)/$(PCMCIA_MODALIAS)
-	- rm -f $(sbindir)/$(PCMCIA_SOCKET_STARTUP)
 	- rm -f $(sbindir)/$(PCCARDCTL)
 	- rm -f $(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
 
@@ -222,7 +242,8 @@ install-config:
 
 uninstall-config:
 #	- rm -f $(pcmciaconfdir)/config.opts
-	
-install: install-tools install-hotplug install-config
 
-uninstall: uninstall-tools uninstall-hotplug uninstall-config
+
+install: install-tools install-hotplug $(INSTALL_TARGETS)
+
+uninstall: uninstall-tools uninstall-hotplug $(UNINSTALL_TARGETS)

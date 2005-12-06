@@ -198,7 +198,6 @@ static void adjust_resources(unsigned int socket_no)
 		    disallow_irq(socket_no, al->adj.resource.irq.IRQ);
 		    break;
 	    }
-	    syslog(LOG_WARNING, "could not adjust resource!");
     }
 }
 
