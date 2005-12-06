@@ -218,7 +218,7 @@ static int pccardctl_info(unsigned long socket_no)
 }
 
 static void print_header(void) {
-	printf("pcmciautils %s\n", VERSION);
+	printf("pcmciautils %s\n", PCMCIAUTILS_VERSION);
 	printf("Copyright (C) 2004-2005 Dominik Brodowski, (C) 1999 David A. Hinds\n");
 	printf("Report errors and bugs to <linux-pcmcia@lists.infradead.org>, please.\n");
 }

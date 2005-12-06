@@ -28,10 +28,8 @@ add)
 		CISFILE=$(pcmcia-check-broken-cis $SOCKET_NO)
 		debug_mesg $CISFILE;
 		if [ ! -z $CISFILE ]; then
-			if [ -f /etc/pcmcia/cis/$CISFILE ]; then
-				cat /etc/pcmcia/cis/$CISFILE > /sys/class/pcmcia_socket/pcmcia_socket$(SOCKET_NO)/cis
-			elif [ -f /lib/firmware/cis/$CISFILE ]; then
-				cat /lib/firmware/cis/$CISFILE > /sys/class/pcmcia_socket/pcmcia_socket$(SOCKET_NO)/cis
+			if [ -f /lib/firmware/$CISFILE ]; then
+				cat /lib/firmware/$CISFILE > $SYSFS/class/pcmcia_socket/pcmcia_socket$(SOCKET_NO)/cis
 			fi;
 		fi;
 	fi;

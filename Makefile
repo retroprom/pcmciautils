@@ -29,6 +29,10 @@
 # bus (e.g. on PPC)
 STARTUP = true
 
+# Set this to true if you want to use 'udev' instead of 'hotplug'
+# to invoke the necessary pcmciautils commands.
+UDEV = false
+
 # Set the following to `true' to log the debug
 # and make a unstripped, unoptimized  binary.
 # Leave this set to `false' for production use.
@@ -40,7 +44,7 @@ PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
 CBDUMP =			cbdump
 CISDUMP =			dump_cis
 
-VERSION =	009
+VERSION =	010
 #INSTALL_DIR =	/usr/local/sbin
 RELEASE_NAME =	pcmciautils-$(VERSION)
 
@@ -62,6 +66,9 @@ INSTALL_SCRIPT = ${INSTALL_PROGRAM}
 
 # place to put our hotplug scripts nodes
 hotplugdir =	${prefix}/etc/hotplug
+
+# place to put our udev rules to
+udevrulesdir = ${prefix}/etc/udev/rules.d
 
 # place where PCMICIA config is put to
 pcmciaconfdir =	${prefix}${etcdir}/pcmcia
@@ -107,7 +114,7 @@ WARNINGS += $(call cc-supports,-Wno-pointer-sign)
 WARNINGS += $(call cc-supports,-Wdeclaration-after-statement)
 WARNINGS += -Wshadow
 
-CFLAGS := -pipe -DVERSION=\"$(VERSION)\"
+CFLAGS := -pipe -DPCMCIAUTILS_VERSION=\"$(VERSION)\"
 YFLAGS := -d
 
 HEADERS = \
@@ -153,15 +160,28 @@ else
 	STRIPCMD = $(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
 
+# HOTPLUG or UDEV?
+ifeq ($(strip $(UDEV)),false)
+	INSTALL_TARGETS = install-hotplug
+	UNINSTALL_TARGETS = uninstall-hotplug
+else
+	INSTALL_TARGETS = install-udev
+	UNINSTALL_TARGETS = uninstall-udev
+endif
+
 # if STARTUP is disabled, we can skip a few things
 ifeq ($(strip $(STARTUP)),false)
+	UDEV_RULES = udev/60-pcmcia.rules.static
 	PCMCIA_SOCKET_STARTUP_BUILD =
-	INSTALL_TARGETS = 
-	UNINSTALL_TARGETS =
 else
+	UDEV_RULES = udev/60-pcmcia.rules
 	PCMCIA_SOCKET_STARTUP_BUILD = $(PCMCIA_SOCKET_STARTUP)
-	INSTALL_TARGETS = install-config install-socket-hotplug install-socket-tools
-	UNINSTALL_TARGETS = uninstall-socket-hotplug uninstall-socket-tools
+	INSTALL_TARGETS += install-config install-socket-tools
+	UNINSTALL_TARGETS += uninstall-socket-tools
+	ifeq ($(strip $(UDEV)),false)
+		INSTALL_TARGETS += install-socket-hotplug
+		UNINSTALL_TARGETS += uninstall-socket-hotplug
+	endif
 endif
 
 
@@ -250,7 +270,12 @@ install-config:
 uninstall-config:
 #	- rm -f $(pcmciaconfdir)/config.opts
 
+install-udev:
+	$(INSTALL_DATA) -D $(UDEV_RULES) $(DESTDIR)$(udevrulesdir)/60-pcmcia.rules
+	
+uninstall-udev:
+	- rm -f $(udevrulesdir)/60-pcmcia.rules
 
-install: install-tools install-hotplug $(INSTALL_TARGETS)
+install: install-tools $(INSTALL_TARGETS)
 
-uninstall: uninstall-tools uninstall-hotplug $(UNINSTALL_TARGETS)
+uninstall: uninstall-tools $(UNINSTALL_TARGETS)

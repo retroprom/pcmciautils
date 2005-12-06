@@ -19,7 +19,6 @@
 #include <sys/types.h>
 
 #include "startup.h"
-#undef VERSION
 
 /* If bison: generate nicer error messages */ 
 #define YYERROR_VERBOSE 1
