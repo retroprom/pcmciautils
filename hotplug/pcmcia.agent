@@ -16,11 +16,6 @@ if [ "$ACTION" = "" ]; then
     exit 1
 fi
 
-if [ "$MODALIAS" = "" ]; then
-    # this will go away soon -- only a few -mm kernels exported this wrongly.
-    MODALIAS=$(MODNAME)
-fi
-
 debug_mesg $SOCKET_NO $DEVICE_NO $MODALIAS $DEVPATH
 
 case $ACTION in

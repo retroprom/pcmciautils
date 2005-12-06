@@ -50,6 +50,7 @@ static const char *resource_files[MAX_RESOURCE_FILES] = {
 
 
 static int add_available_resource(unsigned int socket_no, unsigned int type,
+				  unsigned int action,
 				  unsigned long start, unsigned long end)
 {
 	char file[SYSFS_PATH_MAX];
@@ -64,12 +65,25 @@ static int add_available_resource(unsigned int socket_no, unsigned int type,
 	if (end <= start)
 		return -EINVAL;
 
-	dprintf("%d %d %lx %lx\n", socket_no, type, start, end);
+	dprintf("%d %d %d 0x%lx 0x%lx\n", socket_no, type, action, start, end);
 
 	snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET "pcmcia_socket%u/%s",
 		socket_no, resource_files[type]);
 
-	len = snprintf(content, SYSFS_PATH_MAX, "0x%08lx - 0x%08lx", start, end);
+	switch(action) {
+	case ADD_MANAGED_RESOURCE:
+		len = snprintf(content, SYSFS_PATH_MAX,
+			       "0x%08lx - 0x%08lx", start, end);
+		break;
+		
+	case REMOVE_MANAGED_RESOURCE:
+		len = snprintf(content, SYSFS_PATH_MAX,
+			       "- 0x%08lx - 0x%08lx", start, end);
+		break;
+		
+	default:
+		return -EINVAL;
+	}
 
 	dprintf("content is %s\n", content);
 
@@ -125,9 +139,10 @@ static int disallow_irq(unsigned int socket_no, unsigned int irq)
 	if (irq >= 32)
 		return -EINVAL;
 
-	snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET
+	len = snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET
 		 "pcmcia_socket%u/card_irq_mask",
 		 socket_no);
+	dprintf("file is %s\n", file);
 
 	attr = sysfs_open_attribute(file);
 	if (!attr)
@@ -184,18 +199,21 @@ static void adjust_resources(unsigned int socket_no)
 	    switch (al->adj.Resource) {
 	    case RES_MEMORY_RANGE:
 		    add_available_resource(socket_no, RESOURCE_MEM,
+					   al->adj.Action,
 					   al->adj.resource.memory.Base,
 					   al->adj.resource.memory.Base +
 					   al->adj.resource.memory.Size - 1);
 		    break;
 	    case RES_IO_RANGE:
 		    add_available_resource(socket_no, RESOURCE_IO,
+					   al->adj.Action,
 					   al->adj.resource.io.BasePort,
 					   al->adj.resource.io.BasePort +
 					   al->adj.resource.io.NumPorts - 1);
 		    break;
 	    case RES_IRQ:
-		    disallow_irq(socket_no, al->adj.resource.irq.IRQ);
+		    if(al->adj.Action == REMOVE_MANAGED_RESOURCE)
+			    disallow_irq(socket_no, al->adj.resource.irq.IRQ);
 		    break;
 	    }
     }
@@ -207,10 +225,11 @@ int main(int argc, char *argv[])
 	char *socket_no;
 	unsigned long socket;
 
-	if (argc == 2) {
-		socket = strtoul(argv[1], NULL, 0);
-	} else if ((socket_no = getenv("SOCKET_NO"))) {
+
+	if ((socket_no = getenv("SOCKET_NO"))) {
 		socket = strtoul(socket_no, NULL, 0);
+	} else if (argc == 2) {
+		socket = strtoul(argv[1], NULL, 0);
 	} else {
 		return -EINVAL;
 	}
