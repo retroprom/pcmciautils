@@ -40,7 +40,7 @@ PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
 CBDUMP =			cbdump
 CISDUMP =			dump_cis
 
-VERSION =	004
+VERSION =	005
 #INSTALL_DIR =	/usr/local/sbin
 RELEASE_NAME =	pcmciautils-$(VERSION)
 
@@ -108,6 +108,7 @@ WARNINGS += $(call cc-supports,-Wdeclaration-after-statement)
 WARNINGS += -Wshadow
 
 CFLAGS := -pipe
+YFLAGS := -d
 
 HEADERS = \
 	src/cistpl.h	\
@@ -172,6 +173,12 @@ ccdv:
 
 .c.o:
 	$(QUIET) $(CC) $(CFLAGS) -c -o $@ $<
+
+%.c %.h : %.y
+	$(YACC) $(YFLAGS) $<
+	mv y.tab.c $*.c
+	mv y.tab.h $*.h
+
 	
 $(PCCARDCTL): $(LIBC) src/$(PCCARDCTL).o $(OBJS) $(HEADERS)
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCCARDCTL).o $(LIB_OBJS) $(ARCH_LIB_OBJS)
@@ -203,7 +210,7 @@ clean:
 	 | xargs rm -f 
 	-rm -f $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP)
 	-rm -f $(CBDUMP) $(CISDUMP)
-	-rm -f src/yacc_config.c src/yacc_config.d src/lex_config.c src/lex_config.d
+	-rm -f src/yacc_config.c src/yacc_config.d src/lex_config.c src/lex_config.d src/yacc_config.h
 	-rm -f build/ccdv
 
 install-hotplug:
