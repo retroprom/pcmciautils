@@ -204,10 +204,16 @@ static void adjust_resources(unsigned int socket_no)
 
 int main(int argc, char *argv[])
 {
+	char *socket_no;
 	unsigned long socket;
 
-	if (argc != 2)
-		return -EINVAL;
+	if (argc != 2) {
+		if ((socket_no = getenv("SOCKET_NO"))) {
+			socket = strtoul(argv[1], NULL, 0);
+		} else {
+			return -EINVAL;
+		}
+	}
 
 	socket = strtoul(argv[1], NULL, 0);
 
