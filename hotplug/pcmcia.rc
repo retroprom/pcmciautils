@@ -21,13 +21,13 @@ pcmcia_boot_events ()
 	    if [ $PCMCIA_DEVICE == \* ]; then
 		continue;
 	    fi;
-	    MODNAME=$(pcmcia-modalias $PCMCIA_DEVICE)
-	    debug_mesg $MODNAME $PCMICA_DEVICE
-	    if [ -z $MODNAME ]; then
+	    MODALIAS=$(pcmcia-modalias $PCMCIA_DEVICE)
+	    debug_mesg $MODALIAS $PCMICA_DEVICE
+	    if [ -z $MODALIAS ]; then
 		continue;
 	    fi;
 	    ACTION=add
-	    export MODNAME ACTION
+	    export MODALIAS ACTION
 	    /sbin/hotplug pcmcia
 	done;
     fi;

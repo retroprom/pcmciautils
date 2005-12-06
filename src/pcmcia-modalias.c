@@ -94,17 +94,17 @@ static int extract_modalias_string(char *device) {
 	if (pos > (SYSFS_PATH_MAX - 10))
 		return -ENOMEM;
 
-	value = read_one(device, "function");
-	pos += snprintf(&modalias_string[pos], SYSFS_PATH_MAX - pos,
-		       "pfn%02X", value);
-	if (pos > (SYSFS_PATH_MAX - 10))
-		return -ENOMEM;
-
 	tmp2 = sscanf(device, "%d.%d", &tmp, &value);
 	if (tmp2 != 2)
 		return -EIO;
 	pos += snprintf(&modalias_string[pos], SYSFS_PATH_MAX - pos,
 		       "fn%02X", value);
+	if (pos > (SYSFS_PATH_MAX - 10))
+		return -ENOMEM;
+
+	value = read_one(device, "function");
+	pos += snprintf(&modalias_string[pos], SYSFS_PATH_MAX - pos,
+		       "pfn%02X", value);
 	if (pos > (SYSFS_PATH_MAX - 10))
 		return -ENOMEM;
 

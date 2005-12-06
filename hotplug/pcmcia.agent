@@ -16,12 +16,17 @@ if [ "$ACTION" = "" ]; then
     exit 1
 fi
 
-debug_mesg $SOCKET_NO $DEVICE_NO $MODNAME $DEVPATH
+if [ "$MODALIAS" = "" ]; then
+    # this will go away soon -- only a few -mm kernels exported this wrongly.
+    MODALIAS=$(MODNAME)
+fi
+
+debug_mesg $SOCKET_NO $DEVICE_NO $MODALIAS $DEVPATH
 
 case $ACTION in
 
 add)
-	modprobe $MODNAME
+	modprobe $MODALIAS
 
 	# check whether the CIS is completely broken
 	if [ ! -h $SYSFS$DEVPATH/driver ]; then

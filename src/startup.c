@@ -104,7 +104,7 @@ static int setup_done(unsigned int socket_no)
 	if (!attr)
 		return -ENODEV;
 
-	sysfs_write_attribute(attr, "42", 2);
+	ret = sysfs_write_attribute(attr, "42", 2);
 
 	sysfs_close_attribute(attr);
 

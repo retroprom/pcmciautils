@@ -30,7 +30,7 @@ PCMCIA_CHECK_BROKEN_CIS =	pcmcia-check-broken-cis
 PCMCIA_MODALIAS =		pcmcia-modalias
 PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
 
-VERSION =	001
+VERSION =	002
 #INSTALL_DIR =	/usr/local/sbin
 RELEASE_NAME =	pcmciautils-$(VERSION)
 
