@@ -33,9 +33,9 @@ struct needs_cis {
 
 static struct needs_cis cis_table[] = {
 	/* "D-Link DE-650 Ethernet" */
-	NEEDS_CIS_ENTRY(0x40, 0x0009, "D-Link PC Ethernet Card", "D-Link.dat"),
+	NEEDS_CIS_ENTRY(0x40, 0x0009, "D-Link PC Ethernet Card", "D-Link.cis"),
 	/* "Linksys Ethernet E-CARD PC Ethernet Card */
-	NEEDS_CIS_ENTRY(0x40, 0x0009, "E-CARD PC Ethernet Card", "E-CARD.dat"),
+	NEEDS_CIS_ENTRY(0x40, 0x0009, "E-CARD PC Ethernet Card", "E-CARD.cis"),
 	{ },
 };
 
