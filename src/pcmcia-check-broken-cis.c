@@ -21,10 +21,6 @@
 
 #include "cistpl.h"
 
-extern int read_out_cis (unsigned int socket_no);
-extern int pcmcia_get_first_tuple(unsigned int function, tuple_t *tuple);
-extern int pcmcia_get_tuple_data(tuple_t *tuple);
-
 struct needs_cis {
 	unsigned long code;
 	unsigned long ofs;
@@ -57,7 +53,7 @@ int main(int argc, char **argv) {
 	if (ret != 1)
 		return -ENODEV;
 
-	ret = read_out_cis(socket_no);
+	ret = read_out_cis(socket_no, NULL);
 	if (ret)
 		return (ret);
 

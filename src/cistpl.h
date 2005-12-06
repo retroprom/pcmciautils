@@ -595,4 +595,10 @@ typedef struct tuple_flags {
 
 #define BIND_FN_ALL        0xff
 
+int read_out_cis (unsigned int socket_no, FILE *fd);
+int pcmcia_get_first_tuple(unsigned int function, tuple_t *tuple);
+int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple);
+int pcmcia_get_tuple_data(tuple_t *tuple);
+int pccard_parse_tuple(tuple_t *tuple, cisparse_t *parse);
+
 #endif /* LINUX_CISTPL_H */

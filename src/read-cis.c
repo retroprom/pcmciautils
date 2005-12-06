@@ -33,7 +33,7 @@
 
 static unsigned int functions;
 static unsigned char cis_copy[MAX_TUPLES];
-static unsigned int cis_length;
+static unsigned int cis_length = MAX_TUPLES;
 
 
 #define SPACE(f)       (((tuple_flags *)(&(f)))->space)
@@ -225,22 +225,32 @@ int pcmcia_get_tuple_data(tuple_t *tuple)
 }
 
 
-int read_out_cis (unsigned int socket_no)
+int read_out_cis (unsigned int socket_no, FILE *fd)
 {
         char file[SYSFS_PATH_MAX];
-        int ret;
+        int ret, i;
 	tuple_t tuple;
 	unsigned char buf[256];
-
 
         snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET "pcmcia_socket%d/cis",
 		 socket_no);
 
-        ret = sysfs_read_attribute_value(file, cis_copy, MAX_TUPLES);
-        if (ret)
-                return -EIO;
+	if (!fd) {
+		fd = fopen(file, "r");
+		if (!fd)
+			return -EIO;
+	}
 
-	cis_length = strlen(cis_copy);
+	for (i=0; i<MAX_TUPLES; i++) {
+		ret = fgetc(fd);
+		if (ret == EOF) {
+			cis_length = i + 1;
+			break;
+		}
+		cis_copy[i] = (unsigned char) ret;
+	}
+	fclose(fd);
+
 	if (cis_length < 4)
 		return -EINVAL;
 
@@ -251,7 +261,7 @@ int read_out_cis (unsigned int socket_no)
 
 	ret = pcmcia_get_first_tuple(BIND_FN_ALL, &tuple);
 	if (ret)
-		return -EBUSY;
+		functions = 1;
 
 	tuple.TupleData = buf;
 	tuple.TupleOffset = 0;

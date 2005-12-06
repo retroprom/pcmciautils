@@ -179,7 +179,6 @@ static void load_config(void)
 static void adjust_resources(unsigned int socket_no)
 {
     adjust_list_t *al;
-    char tmp[64];
 
     for (al = root_adjust; al; al = al->next) {
 	    switch (al->adj.Resource) {
@@ -199,7 +198,7 @@ static void adjust_resources(unsigned int socket_no)
 		    disallow_irq(socket_no, al->adj.resource.irq.IRQ);
 		    break;
 	    }
-	    syslog(LOG_WARNING, "could not adjust resource: %s: %m", tmp);
+	    syslog(LOG_WARNING, "could not adjust resource!");
     }
 }
 

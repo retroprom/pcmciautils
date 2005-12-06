@@ -29,8 +29,10 @@ PCCARDCTL =			pccardctl
 PCMCIA_CHECK_BROKEN_CIS =	pcmcia-check-broken-cis
 PCMCIA_MODALIAS =		pcmcia-modalias
 PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
+CBDUMP =			cbdump
+CISDUMP =			dump_cis
 
-VERSION =	002
+VERSION =	003
 #INSTALL_DIR =	/usr/local/sbin
 RELEASE_NAME =	pcmciautils-$(VERSION)
 
@@ -121,6 +123,7 @@ CFLAGS +=	-I$(PWD)/src
 #LIBC =
 CFLAGS += $(WARNINGS) -I$(GCCINCDIR)
 LIB_OBJS = -lc -lsysfs
+LIB_PCI_OBJS = -lc -lpci
 #LDFLAGS =
 
 ifeq ($(strip $(V)),false)
@@ -170,11 +173,22 @@ $(PCMCIA_SOCKET_STARTUP): $(LIBC) src/startup.o src/yacc_config.o src/lex_config
 
 yacc_config.o lex_config.o: %.o: %.c
 	$(CC) -c -MD -O -pipe $(CPPFLAGS) $<
+	
+debugtools: ccdv $(CBDUMP) $(CISDUMP)
+
+$(CBDUMP): $(LIBC) debug/cbdump.o
+	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) debug/$(CBDUMP).o $(LIB_PCI_OBJS) $(ARCH_LIB_OBJS)
+	$(QUIET) $(STRIPCMD) $@
+
+$(CISDUMP): $(LIBC) src/read-cis.o debug/parse_cis.o debug/dump_cis.o
+	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) debug/$(CISDUMP).o src/read-cis.o debug/parse_cis.o $(LIB_OBJS) $(ARCH_LIB_OBJS)
+	$(QUIET) $(STRIPCMD) $@
 
 clean:
 	-find . \( -not -type d \) -and \( -name '*~' -o -name '*.[oas]' \) -type f -print \
 	 | xargs rm -f 
 	-rm -f $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_MODALIAS) $(PCMCIA_SOCKET_STARTUP)
+	-rm -f $(CBDUMP) $(CISDUMP)
 	-rm -f src/yacc_config.c src/yacc_config.d src/lex_config.c src/lex_config.d
 	-rm -f build/ccdv
 
