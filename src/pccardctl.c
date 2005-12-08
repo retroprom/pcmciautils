@@ -91,6 +91,33 @@ static int pccardctl_socket_exists(unsigned long socket_no)
 	return (!(sysfs_path_is_file(file)));
 }
 
+static char * pccardctl_get_string_socket(unsigned long socket_no, const char *in_file)
+{
+	int ret, len;
+	char value[SYSFS_PATH_MAX];
+	char file[SYSFS_PATH_MAX];
+	char *result;
+
+	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/%s",
+		 socket_no, in_file);
+	ret = sysfs_read_attribute_value(file, value, SYSFS_PATH_MAX);
+	if (ret)
+		return NULL;
+
+	len = strlen(value);
+	if (len < 2)
+		return NULL;
+
+	result = malloc(sizeof(char) * len);
+	if (!result)
+		return NULL;
+
+        strncpy(result, value, len);
+        result[len - 1] = '\0';
+
+	return (result);
+}
+
 static char * pccardctl_get_string(unsigned long socket_no, const char *in_file)
 {
 	int ret, len;
@@ -118,20 +145,44 @@ static char * pccardctl_get_string(unsigned long socket_no, const char *in_file)
 	return (result);
 }
 
-static int pccardctl_get_one(unsigned long socket_no, const char *in_file, unsigned int *result)
+static int pccardctl_get_one_f(unsigned long socket_no, unsigned int dev, const char *in_file, unsigned int *result)
 {
 	int ret;
 	char value[SYSFS_PATH_MAX];
 	char file[SYSFS_PATH_MAX];
 
-	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.0/%s",
-		 socket_no, in_file);
+	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/%s",
+		 socket_no, dev, in_file);
 	ret = sysfs_read_attribute_value(file, value, SYSFS_PATH_MAX);
 	if (!ret)
 		sscanf(value, "0x%X", result);
 
 	return (ret);
 }
+
+static int pccardctl_get_one(unsigned long socket_no, const char *in_file, unsigned int *result)
+{
+	return pccardctl_get_one_f(socket_no, 0, in_file, result);
+}
+
+static int pccardctl_get_power(unsigned long socket_no, unsigned int func)
+{
+	int ret;
+	char value[SYSFS_PATH_MAX];
+	char file[SYSFS_PATH_MAX];
+
+	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/power/state",
+		 socket_no, func);
+	ret = sysfs_read_attribute_value(file, value, SYSFS_PATH_MAX);
+	if (!ret) {
+		if (strncmp(value, "0", 1))
+			return 3;
+		return 0;
+	}
+
+	return -ENODEV;
+}
+
 
 static int pccardctl_ident(unsigned long socket_no)
 {
@@ -213,6 +264,68 @@ static int pccardctl_info(unsigned long socket_no)
 
 	printf("FUNCID=%d\n",
 	       (!pccardctl_get_one(socket_no, "func_id", &func_id)) ? func_id : 255);
+
+	return 0;
+}
+
+static int pccardctl_status(unsigned long socket_no)
+{
+	char *card_type;
+	char *card_voltage;
+	int susp;
+	int is_cardbus = 0;
+	int i, ret;
+
+	if (!pccardctl_socket_exists(socket_no))
+		return -ENODEV;
+
+	card_type = pccardctl_get_string_socket(socket_no, "card_type");
+	if (!card_type) {
+		printf("  no card\n");
+		return 0;
+	}
+
+	card_voltage = pccardctl_get_string_socket(socket_no, "card_voltage");
+
+	strncmp(card_type, "16", 2) ? is_cardbus = 0 : 1;
+
+	printf("  %s %s %s", card_voltage, card_type, is_cardbus ? "CardBus card" : "PC Card");
+
+	susp = pccardctl_get_power(socket_no, 0);
+	if (susp > 0)
+		printf(" [suspended]");
+	printf("\n");
+
+	if (is_cardbus) {
+		/* FIXME: handle functions */
+		return 0;
+	}
+
+	for (i=0; i<4; i++) {
+		int function;
+		char drv[SYSFS_PATH_MAX];
+		char file[SYSFS_PATH_MAX];
+		if (pccardctl_get_one_f(socket_no, i, "function", &function))
+			continue;
+
+		printf("  Subdevice %u (function %u)", i, function);
+
+		snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/driver",
+			 socket_no, i);
+		ret = readlink(file, drv, sizeof(drv) - 1);
+		if (ret <= 0)
+			printf(" [unbound]");
+		else if (ret > 0) {
+			drv[ret]='\0';
+			printf(" bound to driver \"%s\"", basename(drv));
+		}
+
+		susp = pccardctl_get_power(socket_no, i);
+		if (susp > 0)
+			printf(" [suspended]");
+
+		printf("\n");
+	}
 
 	return 0;
 }
@@ -364,6 +477,9 @@ int main(int argc, char **argv) {
 			/* fall through */
 		case PCCARDCTL_RESUME:
 			ret = pccardctl_power(cont, 0);
+			break;
+		case PCCARDCTL_STATUS:
+			ret = pccardctl_status(cont);
 			break;
 		default:
 			fprintf(stderr, "command '%s' not yet handled by pccardctl\n", cmdname[cmd]);
