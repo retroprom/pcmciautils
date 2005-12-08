@@ -66,13 +66,13 @@ INSTALL_DATA  = ${INSTALL} -m 644
 INSTALL_SCRIPT = ${INSTALL_PROGRAM}
 
 # place to put our hotplug scripts nodes
-hotplugdir =	${prefix}/etc/hotplug
+hotplugdir =	${etcdir}/hotplug
 
 # place to put our udev rules to
-udevrulesdir = ${prefix}/etc/udev/rules.d
+udevrulesdir = 	${etcdir}/udev/rules.d
 
 # place where PCMICIA config is put to
-pcmciaconfdir =	${prefix}${etcdir}/pcmcia
+pcmciaconfdir =	${etcdir}/pcmcia
 
 # make the build silent. Set this to something else to make it noisy again.
 V=false
