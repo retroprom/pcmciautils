@@ -38,6 +38,14 @@ UDEV = true
 # Leave this set to `false' for production use.
 DEBUG = false
 
+# Set this to true if you want to statically link the binaries
+# to be compiled.
+STATIC = false
+
+# make the build silent. Set this to something else to make it noisy again.
+V = false
+
+
 PCCARDCTL =			pccardctl
 PCMCIA_CHECK_BROKEN_CIS =	pcmcia-check-broken-cis
 PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
@@ -73,9 +81,6 @@ udevrulesdir = 	${etcdir}/udev/rules.d
 
 # place where PCMICIA config is put to
 pcmciaconfdir =	${etcdir}/pcmcia
-
-# make the build silent. Set this to something else to make it noisy again.
-V=false
 
 # set up PWD so that older versions of make will work with our build.
 PWD = $(shell pwd)
@@ -136,11 +141,18 @@ OBJS = \
 
 CFLAGS +=	-I$(PWD)/src
 
-#LIBC =
 CFLAGS += $(WARNINGS) -I$(GCCINCDIR)
+
 LIB_OBJS = -lc -lsysfs
 LIB_PCI_OBJS = -lc -lpci
-#LDFLAGS =
+
+ifeq ($(strip $(STATIC)),true)
+	LIB_OBJS = -lsysfs
+	LIB_PCI_OBJS = -lpci
+	LDFLAGS += -static
+else
+	LDFLAGS += -Wl,-warn-common
+endif
 
 ifeq ($(strip $(V)),false)
 	QUIET=@$(PWD)/build/ccdv
@@ -153,11 +165,9 @@ endif
 # if DEBUG is enabled, then we do not strip or optimize
 ifeq ($(strip $(DEBUG)),true)
 	CFLAGS  += -O1 -g -DDEBUG -D_GNU_SOURCE
-	LDFLAGS += -Wl,-warn-common
 	STRIPCMD = /bin/true -Since_we_are_debugging
 else
 	CFLAGS  += $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
-	LDFLAGS += -s -Wl,-warn-common
 	STRIPCMD = $(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
 
