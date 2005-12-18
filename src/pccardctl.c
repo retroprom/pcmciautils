@@ -91,73 +91,66 @@ static int pccardctl_socket_exists(unsigned long socket_no)
 	return (!(sysfs_path_is_file(file)));
 }
 
-static char * pccardctl_get_string_socket(unsigned long socket_no, const char *in_file)
+static char * read_out_file(char * file)
 {
-	int ret, len;
-	char value[SYSFS_PATH_MAX];
+	struct sysfs_attribute *attr = sysfs_open_attribute(file);
+	int ret;
+	char *result = NULL;
+
+	if (!attr)
+		return NULL;
+	ret = sysfs_read_attribute(attr);
+
+	if (ret || !attr->value || !attr->len || (attr->len > SYSFS_PATH_MAX))
+		goto close_out;
+
+	result = malloc(attr->len + 1);
+	if (result) {
+		memcpy(result, attr->value, attr->len);
+		result[attr->len] = '\0';
+		if (result[attr->len - 1] == '\n')
+			result[attr->len - 1] = '\0';
+	}
+
+ close_out:
+	sysfs_close_attribute(attr);
+	return result;
+}
+
+static inline char * pccardctl_get_string_socket(unsigned long socket_no, const char *in_file)
+{
 	char file[SYSFS_PATH_MAX];
-	char *result;
 
 	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/%s",
 		 socket_no, in_file);
-	ret = sysfs_read_attribute_value(file, value, SYSFS_PATH_MAX);
-	if (ret)
-		return NULL;
 
-	len = strlen(value);
-	if (len < 2)
-		return NULL;
-
-	result = malloc(sizeof(char) * len);
-	if (!result)
-		return NULL;
-
-        strncpy(result, value, len);
-        result[len - 1] = '\0';
-
-	return (result);
+	return read_out_file(file);
 }
 
-static char * pccardctl_get_string(unsigned long socket_no, const char *in_file)
+static inline char * pccardctl_get_string(unsigned long socket_no, const char *in_file)
 {
-	int ret, len;
-	char value[SYSFS_PATH_MAX];
 	char file[SYSFS_PATH_MAX];
-	char *result;
 
 	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.0/%s",
 		 socket_no, in_file);
-	ret = sysfs_read_attribute_value(file, value, SYSFS_PATH_MAX);
-	if (ret)
-		return NULL;
 
-	len = strlen(value);
-	if (len < 2)
-		return NULL;
-
-	result = malloc(sizeof(char) * len);
-	if (!result)
-		return NULL;
-
-        strncpy(result, value, len);
-        result[len - 1] = '\0';
-
-	return (result);
+	return read_out_file(file);
 }
 
-static int pccardctl_get_one_f(unsigned long socket_no, unsigned int dev, const char *in_file, unsigned int *result)
+static inline int pccardctl_get_one_f(unsigned long socket_no, unsigned int dev, const char *in_file, unsigned int *result)
 {
-	int ret;
-	char value[SYSFS_PATH_MAX];
+	char *value;
 	char file[SYSFS_PATH_MAX];
 
 	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/%s",
 		 socket_no, dev, in_file);
-	ret = sysfs_read_attribute_value(file, value, SYSFS_PATH_MAX);
-	if (!ret)
-		sscanf(value, "0x%X", result);
+	value = read_out_file(file);
+	if (!value)
+		return -EINVAL;
 
-	return (ret);
+	if (sscanf(value, "0x%X", result) != 1)
+		return -EIO;
+	return 0;
 }
 
 static int pccardctl_get_one(unsigned long socket_no, const char *in_file, unsigned int *result)
@@ -167,14 +160,13 @@ static int pccardctl_get_one(unsigned long socket_no, const char *in_file, unsig
 
 static int pccardctl_get_power(unsigned long socket_no, unsigned int func)
 {
-	int ret;
-	char value[SYSFS_PATH_MAX];
+	char * value;
 	char file[SYSFS_PATH_MAX];
 
 	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/power/state",
 		 socket_no, func);
-	ret = sysfs_read_attribute_value(file, value, SYSFS_PATH_MAX);
-	if (!ret) {
+	value = read_out_file(file);
+	if (value) {
 		if (strncmp(value, "0", 1))
 			return 3;
 		return 0;
