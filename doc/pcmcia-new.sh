@@ -6,7 +6,7 @@
 
 #
 # set this to the driver to use, one of:
-# yenta_socket, i82365, i82092, pd6792, tcic, etc.
+# yenta_socket, i82365, i82092, pd6729, tcic, etc.
 #
 DRIVER=yenta_socket
 DRIVER_OPTS=
