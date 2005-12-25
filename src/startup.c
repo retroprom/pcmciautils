@@ -75,12 +75,12 @@ static int add_available_resource(unsigned int socket_no, unsigned int type,
 		len = snprintf(content, SYSFS_PATH_MAX,
 			       "0x%08lx - 0x%08lx", start, end);
 		break;
-		
+
 	case REMOVE_MANAGED_RESOURCE:
 		len = snprintf(content, SYSFS_PATH_MAX,
 			       "- 0x%08lx - 0x%08lx", start, end);
 		break;
-		
+
 	default:
 		return -EINVAL;
 	}

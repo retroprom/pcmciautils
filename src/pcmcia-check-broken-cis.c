@@ -53,7 +53,7 @@ static struct needs_cis cis_table[] = {
 int device_has_driver() {
 	char *devpath, *path;
 	struct stat sbuf;
-	
+
 	devpath = getenv("DEVPATH");
 	if (!devpath)
 		return ENODEV;
@@ -70,7 +70,7 @@ char *read_cis(char *cis_file, int *size) {
 	char *ret;
 	int rc, cis_fd;
 	struct stat sbuf;
-	
+
 	cis_path = alloca(strlen(FIRMWARE_PATH) + strlen(cis_file) + 2);
 	sprintf(cis_path,"%s/%s", FIRMWARE_PATH, cis_file);
 	cis_fd = open(cis_path, O_RDONLY);
@@ -106,19 +106,19 @@ char *read_cis(char *cis_file, int *size) {
 int write_cis(char *cis, int socket_no, int size) {
 	char *cis_path;
 	int cis_fd, count, rc;
-	
+
 	cis_path = alloca(strlen(SOCKET_PATH) + 2);
 	sprintf(cis_path,SOCKET_PATH, socket_no);
-	
+
 	cis_fd = open(cis_path, O_RDWR);
 	if (cis_fd == -1) {
 		return errno;
 	}
-	
+
 	count = 0;
 	while (count < size) {
 		int c;
-		
+
 		c = write(cis_fd, cis+count, size-count);
 		if (c <= 0) {
 			rc = errno;
@@ -134,15 +134,15 @@ int write_cis(char *cis, int socket_no, int size) {
 int repair_cis(char *cis_file, int socket_no) {
 	char *cis;
 	int rc, size;
-	
+
 	if (device_has_driver()) {
 		return 0;
 	}
-	
+
 	cis = read_cis(cis_file, &size);
 	if (!cis)
 		return errno;
-	
+
 	rc = write_cis(cis, socket_no, size);
 	free(cis);
 	return rc;
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 			usage(argv[0]);
 		socket_no = strtoul(argv[optind], NULL, 0);
 	}
-	
+
 	ret = read_out_cis(socket_no, NULL);
 	if (ret)
 		return (ret);
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
 			entry++;
 			continue;
 		}
-		
+
 		if (repair) {
 			return repair_cis(entry->cisfile, socket_no);
 		} else {
