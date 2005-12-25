@@ -214,6 +214,7 @@ int main(int argc, char **argv) {
 			return repair_cis(entry->cisfile, socket_no);
 		} else {
 			printf("%s", entry->cisfile);
+			return 1;
 		}
 	};
 
