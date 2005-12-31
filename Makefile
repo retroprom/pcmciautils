@@ -20,7 +20,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-# Set this to 'false' if you do need the socket-startup script
+# Set this to 'false' if you do not need the socket-startup script
 # 
 # You don't need it if the socket driver does not select
 # PCCARD_NONSTATIC -- that is the case for many embedded systems --
