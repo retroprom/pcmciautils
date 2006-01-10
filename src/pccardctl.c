@@ -26,35 +26,25 @@
 #define MAX_SOCKET 8
 
 
-static int pccardctl_power_one(unsigned long socket_no, unsigned int device,
-			       unsigned int power)
+static int pccardctl_power_socket(unsigned long socket_no, unsigned int power)
 {
 	int ret;
 	char file[SYSFS_PATH_MAX];
         struct sysfs_attribute *attr;
 
 	snprintf(file, SYSFS_PATH_MAX,
-		 "/sys/bus/pcmcia/devices/%lu.%u/power/state",
-		 socket_no, device);
+		 "/sys/class/pcmcia_socket/pcmcia_socket%lu/card_pm_state",
+		 socket_no);
 
         attr = sysfs_open_attribute(file);
         if (!attr)
                 return -ENODEV;
 
-        ret = sysfs_write_attribute(attr, power ? "2" : "0", 1);
+        ret = sysfs_write_attribute(attr, power ? "off" : "on", power ? 3 : 2);
 
         sysfs_close_attribute(attr);
 
 	return (ret);
-}
-
-static int pccardctl_power(unsigned long socket_no, unsigned int power)
-{
-	unsigned int i;
-	for (i=0; i<2; i++) /* max 2 devices per socket */
-		pccardctl_power_one(socket_no, i, power);
-
-	return 0;
 }
 
 static int pccardctl_echo_one(unsigned long socket_no, const char *in_file)
@@ -158,17 +148,34 @@ static int pccardctl_get_one(unsigned long socket_no, const char *in_file, unsig
 	return pccardctl_get_one_f(socket_no, 0, in_file, result);
 }
 
-static int pccardctl_get_power(unsigned long socket_no, unsigned int func)
+static int pccardctl_get_power_device(unsigned long socket_no, unsigned int func)
 {
 	char * value;
 	char file[SYSFS_PATH_MAX];
 
-	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/power/state",
+	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/pm_state",
 		 socket_no, func);
 	value = read_out_file(file);
 	if (value) {
-		if (strncmp(value, "0", 1))
-			return 3;
+		if (!strncmp(value, "off", 3))
+			return 1;
+		return 0;
+	}
+
+	return -ENODEV;
+}
+
+static int pccardctl_get_power_socket(unsigned long socket_no)
+{
+	char * value;
+	char file[SYSFS_PATH_MAX];
+
+	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/card_pm_state",
+		 socket_no);
+	value = read_out_file(file);
+	if (value) {
+		if (!strncmp(value, "off", 3))
+			return 1;
 		return 0;
 	}
 
@@ -283,7 +290,7 @@ static int pccardctl_status(unsigned long socket_no)
 
 	printf("  %s %s %s", card_voltage, card_type, is_cardbus ? "CardBus card" : "PC Card");
 
-	susp = pccardctl_get_power(socket_no, 0);
+	susp = pccardctl_get_power_socket(socket_no);
 	if (susp > 0)
 		printf(" [suspended]");
 	printf("\n");
@@ -312,7 +319,7 @@ static int pccardctl_status(unsigned long socket_no)
 			printf(" bound to driver \"%s\"", basename(drv));
 		}
 
-		susp = pccardctl_get_power(socket_no, i);
+		susp = pccardctl_get_power_device(socket_no, i);
 		if (susp > 0)
 			printf(" [suspended]");
 
@@ -460,15 +467,15 @@ int main(int argc, char **argv) {
 			ret = pccardctl_ident(cont);
 			break;
 		case PCCARDCTL_SUSPEND:
-			ret = pccardctl_power(cont, 3);
+			ret = pccardctl_power_socket(cont, 1);
 			break;
 		case PCCARDCTL_RESET:
-			ret = pccardctl_power(cont, 3);
+			ret = pccardctl_power_socket(cont, 1);
 			if (ret && socket_is_set)
 				return (ret);
 			/* fall through */
 		case PCCARDCTL_RESUME:
-			ret = pccardctl_power(cont, 0);
+			ret = pccardctl_power_socket(cont, 0);
 			break;
 		case PCCARDCTL_STATUS:
 			ret = pccardctl_status(cont);
