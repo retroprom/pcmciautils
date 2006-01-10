@@ -18,12 +18,38 @@
 #include <string.h>
 #include <libintl.h>
 #include <locale.h>
+#include <ctype.h>
 
 #include <sysfs/libsysfs.h>
 
 #include <getopt.h>
 
 #define MAX_SOCKET 8
+
+static char *fn[] = {
+	"multifunction",
+	"memory",
+	"serial",
+	"parallel",
+	"fixed disk",
+	"video",
+	"network",
+	"AIMS",
+	"SCSI"
+};
+
+/* crc32hash.c - derived from linux/lib/crc32.c, GNU GPL v2 */
+static unsigned int crc32(unsigned char const *p, unsigned int len)
+{
+	int i;
+	unsigned int crc = 0;
+	while (len--) {
+		crc ^= *p++;
+		for (i = 0; i < 8; i++)
+			crc = (crc >> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+	}
+	return crc;
+}
 
 
 static int pccardctl_power_socket(unsigned long socket_no, unsigned int power)
@@ -185,17 +211,6 @@ static int pccardctl_get_power_socket(unsigned long socket_no)
 
 static int pccardctl_ident(unsigned long socket_no)
 {
-	static char *fn[] = {
-		"multifunction",
-		"memory",
-		"serial",
-		"parallel",
-		"fixed disk",
-		"video",
-		"network",
-		"AIMS",
-		"SCSI"
-	};
 	char *prod_id[4];
 	int valid_prod_id = 0;
 	int i;
@@ -336,6 +351,7 @@ static void print_header(void) {
 }
 
 static char *cmdname[] = {
+	"ls", /* needs to be first */
 	"insert",
 	"eject",
 	"suspend",
@@ -366,11 +382,213 @@ static void print_unknown_arg(void) {
 static struct option pccardctl_opts[] = {
 	{ .name="version",	.has_arg=no_argument,		.flag=NULL,	.val='V'},
 	{ .name="help",		.has_arg=no_argument,		.flag=NULL,	.val='h'},
+	{ .name="verbose",	.has_arg=no_argument,		.flag=NULL,	.val='v'},
 //	{ .name="socket",	.has_arg=required_argument,	.flag=NULL,	.val='s'},
 //	{ .name="socketdir",	.has_arg=required_argument,	.flag=NULL,	.val='d'},
 };
 
+static void lspcmcia_socket_available_resources(unsigned long socket_no, char *which) {
+	char file[SYSFS_PATH_MAX];
+	struct sysfs_attribute *attr;
+	int ret, length, first = 0;
+	char *sep;
+	char *result = NULL;
+
+	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/available_resources_%s",
+			 socket_no, which);
+
+	attr = sysfs_open_attribute(file);
+	if (!attr)
+		return;
+
+
+	ret = sysfs_read_attribute(attr);
+	if (ret)
+		goto close_out;
+
+	printf("\t\t\tAvailable %s:\t", which[0] == 'i' ? "iomem" : "ioports");
+
+	if (!attr->value || !attr->len || (attr->len < 5))
+		goto close_out;
+
+	result = malloc(attr->len + 1);
+	if (result) {
+		memcpy(result, attr->value, attr->len);
+		result[attr->len] = '\0';
+		if (result[attr->len - 1] == '\n')
+			result[attr->len - 1] = '\0';
+	} else
+		goto close_out;
+
+	ret = 0;
+	do {
+		sep = strchr(&result[ret], '\n');
+		if (sep) {
+			length = sep - &result[ret];
+			if (length > SYSFS_PATH_MAX)
+				break;
+			memcpy(file, &result[ret], length);
+			file[length] = '\0';
+			printf("%s\n\t\t\t\t\t\t",file);
+			first++;
+			ret += length + 1;
+		}
+	} while (sep);
+	if (result) {
+		printf("%s\n", &result[ret]);
+		first++;
+	}
+
+ close_out:
+	if (!first)
+		printf("--none--\n");
+	sysfs_close_attribute(attr);
+	return;
+}
+
+static void lspcmcia_socket(unsigned long socket_no, int verbose, char *driver) {
+	char *card_voltage, *card_vpp, *card_vcc, *ready;
+	int pm_state;
+
+	pm_state = pccardctl_get_power_socket(socket_no);
+	ready = pccardctl_get_string_socket(socket_no, "available_resources_setup_done");
+
+
+	printf("\tConfiguration:\tstate: %s\tready: %s\n", pm_state ? "suspended" : "on", ready ? ready : "unknown");
+
+	card_voltage = pccardctl_get_string_socket(socket_no, "card_voltage");
+	card_vpp = pccardctl_get_string_socket(socket_no, "card_vpp");
+	card_vcc = pccardctl_get_string_socket(socket_no, "card_vcc");
+	if (card_voltage && card_vpp && card_vcc)
+		printf("\t\t\tVoltage: %s Vcc: %s Vpp: %s\n", card_voltage, card_vcc, card_vpp);
+
+	if (verbose > 1) {
+		char *irq_mask_s;
+		int i, irqs = 0;
+		unsigned int irq_mask;
+
+		irq_mask_s = pccardctl_get_string_socket(socket_no, "card_irq_mask");
+		if (irq_mask_s && sscanf(irq_mask_s, "0x%X", &irq_mask) == 1) {
+			printf("\t\t\tAvailable IRQs: ");
+			for (i=0;i<32;i++) {
+				if (!(irq_mask & (1 <<i)))
+					continue;
+				if (irqs)
+					printf(", ");
+				printf("%d", i);
+				irqs++;
+			}
+			if (!irqs)
+				printf("none");
+			printf("\n");
+		}
+
+		lspcmcia_socket_available_resources(socket_no, "io");
+		lspcmcia_socket_available_resources(socket_no, "mem");
+	}
+	return;
+}
+
+static int lspcmcia(unsigned long socket_no, int verbose)
+{
+	char file[SYSFS_PATH_MAX];
+	char drv[SYSFS_PATH_MAX];
+	char dev[SYSFS_PATH_MAX];
+	char *res;
+	int ret, i;
+
+	if (!pccardctl_socket_exists(socket_no))
+		return -ENODEV;
+
+	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/device", socket_no);
+	ret = readlink(file, dev, sizeof(dev) - 1);
+	if (ret <= 0)
+		return -EINVAL;
+	else {
+		dev[ret]='\0';
+	}
+
+	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/device/driver", socket_no);
+	ret = readlink(file, drv, sizeof(drv) - 1);
+	if (ret <= 0)
+		return -EINVAL;
+	else {
+		drv[ret]='\0';
+	}
+
+	printf("Socket %lu Bridge:   \t[%s] \t(bus ID: %s)\n", socket_no, basename(drv), basename(dev));
+	if (verbose)
+		lspcmcia_socket(socket_no, verbose, basename(drv));
+
+
+	res = pccardctl_get_string_socket(socket_no, "card_type");
+	if (!res)
+		return 0;
+
+	if (!strncmp(res, "32", 2)) {
+		printf("  CardBus card -- see \"lspci\" for more information\n");
+		return 0;
+	}
+
+	for (i=0; i<4; i++) {
+		int function;
+
+		if (pccardctl_get_one_f(socket_no, i, "function", &function))
+			continue;
+
+		printf("Socket %lu Device %d:\t", socket_no, i);
+
+		snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/driver",
+			 socket_no, i);
+		ret = readlink(file, drv, sizeof(drv) - 1);
+		if (ret <= 0)
+			printf("[-- no driver --]\t");
+		else if (ret > 0) {
+			drv[ret]='\0';
+			printf("[%s]\t\t", basename(drv));
+		}
+		printf("(bus ID: %lu.%d)\n", socket_no, i);
+
+		if (verbose) {
+			int j;
+			unsigned int manf_id, card_id;
+			int pm_state = pccardctl_get_power_device(socket_no, i);
+
+			printf("\tConfiguration:\tstate: %s\n", pm_state ? "suspended" : "on");
+
+			printf("\tProduct Name:   ");
+			for (j=1;j<=4;j++) {
+				snprintf(file, SYSFS_PATH_MAX, "prod_id%d", j);
+				res = pccardctl_get_string(socket_no, file);
+				if (res)
+					printf("%s ", res);
+			}
+			printf("\n");
+
+			printf("\tIdentification:\t");
+			if (!pccardctl_get_one(socket_no, "manf_id", &manf_id))
+				if (!pccardctl_get_one(socket_no, "card_id", &card_id))
+					printf("manf_id: 0x%04x\tcard_id: 0x%04x\n\t\t\t", manf_id, card_id);
+			if (!pccardctl_get_one(socket_no, "func_id", &manf_id))
+				printf("function: %d (%s)\n\t\t\t", manf_id, fn[manf_id]);
+			for (j=1;j<=4;j++) {
+				snprintf(file, SYSFS_PATH_MAX, "prod_id%d", j);
+				res = pccardctl_get_string(socket_no, file);
+				if (res)
+					printf("prod_id(%u): \"%s\" (0x%08x)\n", j, res, crc32(res, strlen(res)));
+				else
+					printf("prod_id(%u): --- (---)\n", j);
+				if (j<4)
+					printf("\t\t\t");
+			}
+		}
+	}
+
+	return 0;
+}
+
 enum {
+	PCCARDCTL_LSPCMCIA, /* needs to be first */
 	PCCARDCTL_INSERT,
 	PCCARDCTL_EJECT,
 	PCCARDCTL_SUSPEND,
@@ -388,6 +606,7 @@ int main(int argc, char **argv) {
 	extern char *optarg;
 	extern int optind, opterr, optopt;
 	int ret = 0;
+	int verbose = 0;
 	unsigned int cont = 1;
 	unsigned long socket = 0;
 	unsigned int socket_is_set = 0;
@@ -395,7 +614,7 @@ int main(int argc, char **argv) {
 	unsigned int cmd;
 
 	do {
-		ret = getopt_long(argc, argv, "Vhc:f:s:", pccardctl_opts, NULL);
+		ret = getopt_long(argc, argv, "Vhvc:f:s:", pccardctl_opts, NULL);
 		switch (ret) {
 		case -1:
 			cont = 0;
@@ -403,6 +622,9 @@ int main(int argc, char **argv) {
 		case 'V':
 			print_header();
 			return 0;
+		case 'v':
+			verbose++;
+			break;
 		case 'h':
 			print_header();
 			print_help();
@@ -419,6 +641,11 @@ int main(int argc, char **argv) {
 		}
 	} while (cont);
 
+	if (strcmp(basename(argv[0]), "lspcmcia") == 0) {
+		cmd = 0;
+		goto check_socket;
+	}
+
 	if ((argc == optind) || (argc > (optind + 2))) {
 		print_unknown_arg();
 		return -EINVAL;
@@ -433,6 +660,7 @@ int main(int argc, char **argv) {
 		return -EINVAL;
 	}
 
+ check_socket:
 	if (argc == optind+2) {
 		socket_is_set = 1;
 		socket = strtol(argv[optind+1], &s, 0);
@@ -454,6 +682,8 @@ int main(int argc, char **argv) {
 
 		ret = 0;
 		switch (cmd) {
+		case PCCARDCTL_LSPCMCIA:
+			ret = lspcmcia(cont, verbose);
 		case PCCARDCTL_INSERT:
 			ret = pccardctl_echo_one(cont, "card_insert");
 			break;

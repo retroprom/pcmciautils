@@ -47,6 +47,7 @@ V = false
 
 
 PCCARDCTL =			pccardctl
+LSPCMCIA =			lspcmcia
 PCMCIA_CHECK_BROKEN_CIS =	pcmcia-check-broken-cis
 PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
 CBDUMP =			cbdump
@@ -72,6 +73,7 @@ INSTALL = /usr/bin/install -c
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_DATA  = ${INSTALL} -m 644
 INSTALL_SCRIPT = ${INSTALL_PROGRAM}
+SYMLINK = /usr/bin/ln -s
 
 # place to put our hotplug scripts nodes
 hotplugdir =	${etcdir}/hotplug
@@ -217,7 +219,7 @@ ccdv:
 	mv y.tab.c $*.c
 	mv y.tab.h $*.h
 
-$(PCCARDCTL): $(LIBC) src/$(PCCARDCTL).o $(OBJS) $(HEADERS)
+$(PCCARDCTL): $(LIBC) src/$(PCCARDCTL).o src/$(PCCARDCTL).c $(OBJS) $(HEADERS)
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCCARDCTL).o $(LIB_OBJS) $(ARCH_LIB_OBJS)
 	$(QUIET) $(STRIPCMD) $@
 
@@ -278,11 +280,12 @@ install-tools:
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
 	$(INSTALL_PROGRAM) -D $(PCCARDCTL) $(DESTDIR)$(sbindir)/$(PCCARDCTL)
 	$(INSTALL_PROGRAM) -D $(PCMCIA_CHECK_BROKEN_CIS) $(DESTDIR)$(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
-
+	$(SYMLINK) $(DESTDIR)$(sbindir)/$(PCCARDCTL) $(DESTDIR)$(sbindir)/$(LSPCMCIA)
 
 uninstall-tools:
 	- rm -f $(DESTDIR)$(sbindir)/$(PCCARDCTL)
 	- rm -f $(DESTDIR)$(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
+	- rm -f $(DESTDIR)$(sbindir)/$(LSPCMCIA)
 
 install-config:
 	$(INSTALL) -d $(DESTDIR)$(pcmciaconfdir)
