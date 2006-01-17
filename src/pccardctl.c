@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libintl.h>
+#include <libgen.h>
 #include <locale.h>
 #include <ctype.h>
 
@@ -497,8 +498,10 @@ static void lspcmcia_socket(unsigned long socket_no, int verbose, char *driver) 
 static int lspcmcia(unsigned long socket_no, int verbose)
 {
 	char file[SYSFS_PATH_MAX];
-	char drv[SYSFS_PATH_MAX];
-	char dev[SYSFS_PATH_MAX];
+	char drv_s[SYSFS_PATH_MAX];
+	char dev_s[SYSFS_PATH_MAX];
+	char *drv;
+	char *dev;
 	char *res;
 	int ret, i;
 
@@ -506,24 +509,33 @@ static int lspcmcia(unsigned long socket_no, int verbose)
 		return -ENODEV;
 
 	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/device", socket_no);
-	ret = readlink(file, dev, sizeof(dev) - 1);
-	if (ret <= 0)
-		return -EINVAL;
-	else {
-		dev[ret]='\0';
+	ret = readlink(file, dev_s, sizeof(dev_s) - 1);
+	if (ret > 0) {
+		dev_s[ret]='\0';
+		dev = basename(dev_s);
+	} else {
+		snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu", socket_no);
+		ret = readlink(file, dev_s, sizeof(dev_s) - 1);
+		if (ret <= 0)
+			return -ENODEV;
+		dev_s[ret]='\0';
+		dev = basename(dirname(dev_s));
 	}
 
 	snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/device/driver", socket_no);
-	ret = readlink(file, drv, sizeof(drv) - 1);
-	if (ret <= 0)
-		return -EINVAL;
-	else {
-		drv[ret]='\0';
+	ret = readlink(file, drv_s, sizeof(drv_s) - 1);
+	if (ret <= 0) {
+		snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/../driver", socket_no);
+		ret = readlink(file, drv_s, sizeof(drv_s) - 1);
+		if (ret <= 0)
+			return -ENODEV;
 	}
+	drv_s[ret]='\0';
+	drv = basename(drv_s);
 
-	printf("Socket %lu Bridge:   \t[%s] \t(bus ID: %s)\n", socket_no, basename(drv), basename(dev));
+	printf("Socket %lu Bridge:   \t[%s] \t(bus ID: %s)\n", socket_no, drv, dev);
 	if (verbose)
-		lspcmcia_socket(socket_no, verbose, basename(drv));
+		lspcmcia_socket(socket_no, verbose, drv);
 
 
 	pccardctl_get_string_socket(socket_no, "card_type", &res);
@@ -545,12 +557,12 @@ static int lspcmcia(unsigned long socket_no, int verbose)
 
 		snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.%u/driver",
 			 socket_no, i);
-		ret = readlink(file, drv, sizeof(drv) - 1);
+		ret = readlink(file, drv_s, sizeof(drv_s) - 1);
 		if (ret <= 0)
 			printf("[-- no driver --]\t");
 		else if (ret > 0) {
-			drv[ret]='\0';
-			printf("[%s]\t\t", basename(drv));
+			drv_s[ret]='\0';
+			printf("[%s]\t\t", basename(drv_s));
 		}
 		printf("(bus ID: %lu.%d)\n", socket_no, i);
 

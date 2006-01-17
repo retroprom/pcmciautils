@@ -73,7 +73,7 @@ INSTALL = /usr/bin/install -c
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_DATA  = ${INSTALL} -m 644
 INSTALL_SCRIPT = ${INSTALL_PROGRAM}
-SYMLINK = /usr/bin/ln -s
+SYMLINK = /usr/bin/ln -sf
 
 # place to put our hotplug scripts nodes
 hotplugdir =	${etcdir}/hotplug
