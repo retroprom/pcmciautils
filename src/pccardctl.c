@@ -16,7 +16,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libintl.h>
 #include <libgen.h>
 #include <locale.h>
 #include <ctype.h>
