@@ -53,7 +53,7 @@ PCMCIA_SOCKET_STARTUP =		pcmcia-socket-startup
 CBDUMP =			cbdump
 CISDUMP =			dump_cis
 
-VERSION =	012
+VERSION =	013
 #INSTALL_DIR =	/usr/local/sbin
 RELEASE_NAME =	pcmciautils-$(VERSION)
 
