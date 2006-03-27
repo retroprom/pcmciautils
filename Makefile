@@ -280,7 +280,7 @@ install-tools:
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
 	$(INSTALL_PROGRAM) -D $(PCCARDCTL) $(DESTDIR)$(sbindir)/$(PCCARDCTL)
 	$(INSTALL_PROGRAM) -D $(PCMCIA_CHECK_BROKEN_CIS) $(DESTDIR)$(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
-	$(SYMLINK) $(DESTDIR)$(sbindir)/$(PCCARDCTL) $(DESTDIR)$(sbindir)/$(LSPCMCIA)
+	$(SYMLINK) $(PCCARDCTL) $(DESTDIR)$(sbindir)/$(LSPCMCIA)
 
 uninstall-tools:
 	- rm -f $(DESTDIR)$(sbindir)/$(PCCARDCTL)
