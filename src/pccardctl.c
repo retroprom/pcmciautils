@@ -700,6 +700,7 @@ int main(int argc, char **argv) {
 		switch (cmd) {
 		case PCCARDCTL_LSPCMCIA:
 			ret = lspcmcia(cont, verbose);
+			break;
 		case PCCARDCTL_INSERT:
 			ret = pccardctl_echo_one(cont, "card_insert");
 			break;
