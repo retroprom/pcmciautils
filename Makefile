@@ -302,9 +302,11 @@ uninstall-udev:
 
 install-man:
 	$(INSTALL_DATA) -D man/man8/pccardctl.8 $(DESTDIR)$(mandir)/man8/pccardctl.8
+	$(SYMLINK) pccardctl.8 $(DESTDIR)$(mandir)/man8/lspcmcia.8
 
 uninstall-man:
 	- rm $(DESTDIR)$(mandir)/man8/pccardctl.8
+	- rm $(DESTDIR)$(mandir)/man8/lspcmcia.8
 
 
 install: install-tools install-man $(INSTALL_TARGETS)
