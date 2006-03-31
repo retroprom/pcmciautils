@@ -411,7 +411,7 @@ static void lspcmcia_socket_available_resources(unsigned long socket_no, char *w
 	if (ret)
 		goto close_out;
 
-	printf("\t\t\tAvailable %s:\t", which[0] == 'i' ? "iomem" : "ioports");
+	printf("\t\t\tAvailable %s:\t", which[0] == 'i' ? "ioports" : "iomem");
 
 	if (!attr->value || !attr->len || (attr->len < 5))
 		goto close_out;
