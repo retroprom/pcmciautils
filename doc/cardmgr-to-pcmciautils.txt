@@ -68,7 +68,7 @@ as well) add the following snippet to the beginning of /etc/init.d/pcmcia
 
 
 	KVERREL=`uname -r`
-	KVER=${KVERREL%-*}
+	KVER=${KVERREL%%-*}
 	KVER_MAJOR=${KVER%.*}
 	KVER_MINOR=${KVER##*.}
 
