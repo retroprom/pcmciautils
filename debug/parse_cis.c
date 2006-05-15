@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <endian.h>
+#include <byteswap.h>
 
 #include "../src/cistpl.h"
 
@@ -40,9 +42,13 @@ static const u_int exponent[] = {
     (mantissa[((v)>>3)&15] * exponent[(v)&7] / 10)
 #define POWER_SCALE(v)          (exponent[(v)&7])
 
-/* FIXME: how to handle this in userspace? */
-#define le32_to_cpu(value) (value)
-#define le16_to_cpu(value) (value)
+#if __BYTE_ORDER == __BIG_ENDIAN
+# define le32_to_cpu(value) bswap_32(value)
+# define le16_to_cpu(value) bswap_16(value)
+#else
+# define le32_to_cpu(value) (value)
+# define le16_to_cpu(value) (value)
+#endif
 
 static int parse_device(tuple_t *tuple, cistpl_device_t *device)
 {
