@@ -26,7 +26,7 @@
 
 #define MAX_SOCKET 8
 
-static char *fn[] = {
+static const char * const fn[] = {
 	"multifunction",
 	"memory",
 	"serial",
@@ -79,7 +79,7 @@ static int pccardctl_echo_one(unsigned long socket_no, const char *in_file)
         char file[SYSFS_PATH_MAX];
         struct sysfs_attribute *attr;
 
-	if (!file)
+	if (!in_file)
 		return -EINVAL;
 
         snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/%s",
@@ -249,8 +249,12 @@ static int pccardctl_ident(unsigned long socket_no)
 		if (!pccardctl_get_one(socket_no, "card_id", &card_id))
 			printf("  manfid: 0x%04x, 0x%04x\n", manf_id, card_id);
 
-	if (!pccardctl_get_one(socket_no, "func_id", &manf_id))
-		printf("  function: %d (%s)\n", manf_id, fn[manf_id]);
+	if (!pccardctl_get_one(socket_no, "func_id", &manf_id)) {
+		const char *s = "unknown";
+		if (manf_id < sizeof(fn)/sizeof(*fn))
+			s = fn[manf_id];
+		printf("  function: %d (%s)\n", manf_id, s);
+	}
 
 
 	return 0;

@@ -42,7 +42,7 @@ struct needs_cis {
 #define NEEDS_CIS_ENTRY(_code, _ofs, _info, _cisfile) \
 { .code = _code, .ofs = _ofs, .info = _info, .cisfile = _cisfile, }
 
-static struct needs_cis cis_table[] = {
+static const struct needs_cis cis_table[] = {
 	/* "D-Link DE-650 Ethernet" */
 	NEEDS_CIS_ENTRY(0x40, 0x0009, "D-Link PC Ethernet Card", "D-Link.cis"),
 	/* "Linksys Ethernet E-CARD PC Ethernet Card */
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 	int ret;
 	char *socket;
 	unsigned int socket_no;
-	struct needs_cis * entry = NULL;
+	const struct needs_cis * entry = NULL;
 	tuple_t tuple;
 	unsigned char buf[256];
 	int opt;

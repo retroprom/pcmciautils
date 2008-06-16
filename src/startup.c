@@ -93,7 +93,7 @@ static int add_available_resource(unsigned int socket_no, unsigned int type,
 	if (!attr)
 		return -ENODEV;
 
-	dprintf("open, len %d\n", len);
+	dprintf("open, len %zu\n", len);
 
 	ret = sysfs_write_attribute(attr, content, len);
 
@@ -148,7 +148,7 @@ static int disallow_irq(unsigned int socket_no, unsigned int irq)
 	if (!attr)
 		return -ENODEV;
 
-	dprintf("open, len %d\n", len);
+	dprintf("open, len %zu\n", len);
 
 	ret = sysfs_read_attribute(attr);
 	if (ret) {
