@@ -203,6 +203,7 @@ UDEV_RULES = udev/rules-start udev/rules-modprobe udev/rules-base
 ifneq ($(strip $(STARTUP)),false)
 	UDEV_RULES += udev/rules-nonstaticsocket
 endif
+UDEV_RULES += udev/rules-end
 
 
 all: ccdv $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP_BUILD) udevrules
