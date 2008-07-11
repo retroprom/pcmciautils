@@ -4,10 +4,13 @@
 .TH PCCARDCTL 8 "2005/10/22" "pcmciautils"
 .SH NAME
 pccardctl \- PCMCIA card control utility
+.br
+lspcmcia \- display extended PCMCIA debugging information
 
 .SH SYNOPSIS
-\fBpccardctl\fR [\fB-V\fR] \fIcommand\fR [\fIsocket\fR]
+\fBpccardctl\fR [\fB\-V\fR] [\fB\-v ...\fR] \fIcommand\fR [\fIsocket\fR]
 .br
+\fBlspcmcia\fR [\fB\-V\fR] [\fB\-v ...\fR] [\fIsocket\fR]
 
 .SH DESCRIPTION
 \fBpccardctl\fR is used to monitor and control the state of PCMCIA
@@ -17,6 +20,8 @@ to just one socket; otherwise, all sockets will be affected.
 If \fBpccardctl\fR is executed by root, all commands are available.  If
 it is executed by an unpriviledged user, only the informational
 commands are accessible.
+.PP
+\fBlspcmcia\fR is an alias for \fBpccardctl ls\fR, provided for convenience.
 .PP
 
 .SH COMMANDS
@@ -39,6 +44,10 @@ Much like the \fBident\fR command, but its output is formatted as a
 series of Bourne-stype shell variable definitions for use in scripts.
 Not yet implemented for cardbus cards.
 .TP
+.B ls
+Display extended debugging information about the PCMCIA sockets and
+devices present in the system.
+.TP
 .B suspend
 Shut down and then disable power for a socket.
 .TP
@@ -57,6 +66,12 @@ Notify all client drivers that this card has just been inserted.
 .TP
 .B \-V
 Show version information and exit.
+.TP
+.B \-v
+Increase the verbosity of the
+.B ls
+command.
+Giving this option twice increases verbosity further.
 
 .SH AUTHOR
 Daniel Ritz \- daniel.ritz@gmx.ch
