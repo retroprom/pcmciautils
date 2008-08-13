@@ -208,11 +208,12 @@ UDEV_RULES += udev/rules-end
 
 all: ccdv $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP_BUILD) udevrules
 
-ccdv:
+ccdv: build/ccdv
+build/ccdv: build/ccdv.c
 	@echo "Building ccdv"
-	@$(HOSTCC) -O1 build/ccdv.c -o build/ccdv
+	@$(HOSTCC) -O1 $< -o $@
 
-.c.o:
+%.o : %.c ccdv
 	$(QUIET) $(CC) $(CFLAGS) -c -o $@ $<
 
 %.c %.h : %.y
