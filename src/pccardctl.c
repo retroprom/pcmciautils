@@ -589,8 +589,12 @@ static int lspcmcia(unsigned long socket_no, int verbose)
 			if (!pccardctl_get_one(socket_no, "manf_id", &manf_id))
 				if (!pccardctl_get_one(socket_no, "card_id", &card_id))
 					printf("manf_id: 0x%04x\tcard_id: 0x%04x\n\t\t\t", manf_id, card_id);
-			if (!pccardctl_get_one(socket_no, "func_id", &manf_id))
-				printf("function: %d (%s)\n\t\t\t", manf_id, fn[manf_id]);
+			if (!pccardctl_get_one(socket_no, "func_id", &manf_id)) {
+				const char *s = "unknown";
+				if (manf_id < sizeof(fn)/sizeof(*fn))
+					s = fn[manf_id];
+				printf("function: %d (%s)\n\t\t\t", manf_id, s);
+			}
 			for (j=1;j<=4;j++) {
 				snprintf(file, SYSFS_PATH_MAX, "prod_id%d", j);
 				pccardctl_get_string(socket_no, file, &res);
