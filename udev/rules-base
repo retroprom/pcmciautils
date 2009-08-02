@@ -4,7 +4,7 @@
 # instead of the manufactor, card or product ID. Then the
 # matching is done in userspace.
 SUBSYSTEM=="pcmcia", ENV{MODALIAS}=="?*", \
-		RUN+="/lib/udev/pcmcia-check-broken-cis"
+		RUN+="__UDEVHELPERDIR__/pcmcia-check-broken-cis"
 
 # However, the "weak" matching by func_id is only allowed _after_ modprobe
 # returns, so that "strong" matches have a higher priority.

@@ -61,13 +61,13 @@ RELEASE_NAME =	pcmciautils-$(VERSION)
 
 KERNEL_DIR = /lib/modules/${shell uname -r}/build
 
-# override this to make udev look in a different location for it's config files
+# override this to make pcmciautils look in a different location for its files
 prefix =
 exec_prefix =	${prefix}
 etcdir =	${prefix}/etc
 sbindir =	${exec_prefix}/sbin
 mandir =	${prefix}/usr/share/man
-srcdir = .
+udevdir =	${prefix}/lib/udev/
 
 INSTALL = /usr/bin/install -c
 INSTALL_PROGRAM = ${INSTALL}
@@ -79,7 +79,11 @@ SYMLINK = ln -sf
 hotplugdir =	${etcdir}/hotplug
 
 # place to put our udev rules to
-udevrulesdir = 	${etcdir}/udev/rules.d
+udevrulesdir = 	${udevdir}/rules.d
+
+# place to put our udev helper binaries (pcmcia-socket-startup, pcmcia-check-broken-cis) to
+udevhelperdir =   ${udevdir}
+# udevhelperdir = ${sbindir}
 
 # place where PCMICIA config is put to
 pcmciaconfdir =	${etcdir}/pcmcia
@@ -247,7 +251,7 @@ $(CISDUMP): $(LIBC) src/read-cis.o debug/parse_cis.o debug/dump_cis.o
 	$(QUIET) $(STRIPCMD) $@
 
 udevrules:
-	cat $(UDEV_RULES) > $(UDEV_RULES_FILE)
+	cat $(UDEV_RULES) | sed -e "s#__UDEVHELPERDIR__/#${udevhelperdir}#g" > $(UDEV_RULES_FILE)
 
 clean:
 	-find . \( -not -type d \) -and \( -name '*~' -o -name '*.[oas]' \) -type f -print \
@@ -272,22 +276,23 @@ install-socket-hotplug:
 
 uninstall-socket-hotplug:
 	- rm -f $(DESTDIR)$(hotplugdir)/pcmcia_socket.agent $(DESTDIR)$(hotplugdir)/pcmcia_socket.rc
+
 install-socket-tools:
-	$(INSTALL_PROGRAM) -D $(PCMCIA_SOCKET_STARTUP) $(DESTDIR)$(sbindir)/$(PCMCIA_SOCKET_STARTUP)
+	$(INSTALL_PROGRAM) -D $(PCMCIA_SOCKET_STARTUP) $(DESTDIR)$(udevhelperdir)/$(PCMCIA_SOCKET_STARTUP)
 
 uninstall-socket-tools:
-	- rm -f $(DESTDIR)$(sbindir)/$(PCMCIA_SOCKET_STARTUP)
+	- rm -f $(DESTDIR)$(udevhelperdir)/$(PCMCIA_SOCKET_STARTUP)
 
 install-tools:
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
 	$(INSTALL_PROGRAM) -D $(PCCARDCTL) $(DESTDIR)$(sbindir)/$(PCCARDCTL)
-	$(INSTALL_PROGRAM) -D $(PCMCIA_CHECK_BROKEN_CIS) $(DESTDIR)$(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
 	$(SYMLINK) $(PCCARDCTL) $(DESTDIR)$(sbindir)/$(LSPCMCIA)
+	$(INSTALL_PROGRAM) -D $(PCMCIA_CHECK_BROKEN_CIS) $(DESTDIR)$(udevhelperdir)/$(PCMCIA_CHECK_BROKEN_CIS)
 
 uninstall-tools:
 	- rm -f $(DESTDIR)$(sbindir)/$(PCCARDCTL)
-	- rm -f $(DESTDIR)$(sbindir)/$(PCMCIA_CHECK_BROKEN_CIS)
 	- rm -f $(DESTDIR)$(sbindir)/$(LSPCMCIA)
+	- rm -f $(DESTDIR)$(udevhelperdir)/$(PCMCIA_CHECK_BROKEN_CIS)
 
 install-config:
 	$(INSTALL) -d $(DESTDIR)$(pcmciaconfdir)
