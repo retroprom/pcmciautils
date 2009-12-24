@@ -126,7 +126,7 @@ WARNINGS += $(call cc-supports,-Wno-pointer-sign)
 WARNINGS += $(call cc-supports,-Wdeclaration-after-statement)
 WARNINGS += -Wshadow
 
-CFLAGS := -pipe -DPCMCIAUTILS_VERSION=\"$(VERSION)\"
+CFLAGS += -pipe -DPCMCIAUTILS_VERSION=\"$(VERSION)\"
 YFLAGS := -d
 
 HEADERS = \
@@ -218,7 +218,7 @@ build/ccdv: build/ccdv.c
 	@$(HOSTCC) -O1 $< -o $@
 
 %.o : %.c ccdv
-	$(QUIET) $(CC) $(CFLAGS) -c -o $@ $<
+	$(QUIET) $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 %.c %.h : %.y
 	$(YACC) $(YFLAGS) $<
