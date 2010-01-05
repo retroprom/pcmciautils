@@ -67,7 +67,7 @@ exec_prefix =	${prefix}
 etcdir =	${prefix}/etc
 sbindir =	${exec_prefix}/sbin
 mandir =	${prefix}/usr/share/man
-udevdir =	${prefix}/lib/udev/
+udevdir =	${prefix}/lib/udev
 
 INSTALL = /usr/bin/install -c
 INSTALL_PROGRAM = ${INSTALL}
@@ -251,7 +251,7 @@ $(CISDUMP): $(LIBC) src/read-cis.o debug/parse_cis.o debug/dump_cis.o
 	$(QUIET) $(STRIPCMD) $@
 
 udevrules:
-	cat $(UDEV_RULES) | sed -e "s#__UDEVHELPERDIR__/#${udevhelperdir}#g" > $(UDEV_RULES_FILE)
+	cat $(UDEV_RULES) | sed -e "s#__UDEVHELPERDIR__#${udevhelperdir}#g" > $(UDEV_RULES_FILE)
 
 clean:
 	-find . \( -not -type d \) -and \( -name '*~' -o -name '*.[oas]' \) -type f -print \
