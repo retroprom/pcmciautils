@@ -297,6 +297,9 @@ uninstall-tools:
 install-config:
 	$(INSTALL) -d $(DESTDIR)$(pcmciaconfdir)
 	$(INSTALL_DATA)  -D config/config.opts $(DESTDIR)$(pcmciaconfdir)/config.opts
+	if [ -f config/config.opts.$(ARCH) ]; then \
+		$(INSTALL_DATA) -D config/config.opts.$(ARCH) $(DESTDIR)$(pcmciaconfdir)/config.opts; \
+	fi
 
 uninstall-config:
 #	- rm -f $(DESTDIR)$(pcmciaconfdir)/config.opts
