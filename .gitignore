@@ -11,3 +11,11 @@ src/yacc_config.c
 src/yacc_config.h
 src/yacc_config.o
 udev/60-pcmcia.rules
+
+# debug tools
+
+cbdump
+dump_cis
+debug/cbdump.o
+debug/dump_cis.o
+debug/parse_cis.o
