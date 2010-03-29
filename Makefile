@@ -150,10 +150,12 @@ CFLAGS +=	-I$(PWD)/src
 CFLAGS += $(WARNINGS) -I$(GCCINCDIR)
 
 LIB_OBJS = -lc -lsysfs
+LIB_PLAIN_OBJS = -lc
 LIB_PCI_OBJS = -lc -lpci
 
 ifeq ($(strip $(STATIC)),true)
 	LIB_OBJS = -lsysfs
+	LIB_PLAIN_OBJS =
 	LIB_PCI_OBJS = -lpci
 	LDFLAGS += -static
 else
@@ -230,7 +232,7 @@ $(PCCARDCTL): $(LIBC) src/$(PCCARDCTL).o src/$(PCCARDCTL).c $(OBJS) $(HEADERS)
 	$(QUIET) $(STRIPCMD) $@
 
 $(PCMCIA_CHECK_BROKEN_CIS): $(LIBC) src/$(PCMCIA_CHECK_BROKEN_CIS).o src/read-cis.o $(OBJS) $(HEADERS)
-	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCMCIA_CHECK_BROKEN_CIS).o src/read-cis.o $(LIB_OBJS) $(ARCH_LIB_OBJS)
+	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCMCIA_CHECK_BROKEN_CIS).o src/read-cis.o $(LIB_PLAIN_OBJS) $(ARCH_LIB_OBJS)
 	$(QUIET) $(STRIPCMD) $@
 
 $(PCMCIA_SOCKET_STARTUP): $(LIBC) src/startup.o src/yacc_config.o src/lex_config.o $(OBJS) $(HEADERS)
