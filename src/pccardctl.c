@@ -394,6 +394,7 @@ static struct option pccardctl_opts[] = {
 	{ .name="verbose",	.has_arg=no_argument,		.flag=NULL,	.val='v'},
 //	{ .name="socket",	.has_arg=required_argument,	.flag=NULL,	.val='s'},
 //	{ .name="socketdir",	.has_arg=required_argument,	.flag=NULL,	.val='d'},
+	{ 0, 0, 0, 0 }
 };
 
 static void lspcmcia_socket_available_resources(unsigned long socket_no, char *which) {
