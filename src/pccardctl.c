@@ -498,6 +498,58 @@ static void lspcmcia_socket(unsigned long socket_no, int verbose, char *driver) 
 	return;
 }
 
+static void lspcmcia_device_resources(unsigned long socket_no, int fun) {
+	char file[SYSFS_PATH_MAX];
+	struct sysfs_attribute *attr;
+	int ret, length;
+	char *sep;
+	char *result = NULL;
+
+	snprintf(file, SYSFS_PATH_MAX,
+		"/sys/bus/pcmcia/devices/%lu.%u/resources", socket_no, fun);
+
+	attr = sysfs_open_attribute(file);
+	if (!attr)
+		return;
+
+	ret = sysfs_read_attribute(attr);
+	if (ret)
+		goto close_out;
+
+	if (!attr->value || !attr->len || (attr->len < 5))
+		goto close_out;
+
+	result = malloc(attr->len + 1);
+	if (result) {
+		memcpy(result, attr->value, attr->len);
+		result[attr->len] = '\0';
+		if (result[attr->len - 1] == '\n')
+			result[attr->len - 1] = '\0';
+	} else
+		goto close_out;
+
+	ret = 0;
+	printf("\t\t\t");
+	do {
+		sep = strchr(&result[ret], '\n');
+		if (sep) {
+			length = sep - &result[ret];
+			if (length > SYSFS_PATH_MAX)
+				break;
+			memcpy(file, &result[ret], length);
+			file[length] = '\0';
+			printf("%s\n\t\t\t",file);
+			ret += length + 1;
+		}
+	} while (sep);
+	if (result)
+		printf("%s\n", &result[ret]);
+
+ close_out:
+	sysfs_close_attribute(attr);
+	return;
+}
+
 static int lspcmcia(unsigned long socket_no, int verbose)
 {
 	char file[SYSFS_PATH_MAX];
@@ -575,6 +627,7 @@ static int lspcmcia(unsigned long socket_no, int verbose)
 			int pm_state = pccardctl_get_power_device(socket_no, i);
 
 			printf("\tConfiguration:\tstate: %s\n", pm_state ? "suspended" : "on");
+			lspcmcia_device_resources(socket_no, i);
 
 			printf("\tProduct Name:   ");
 			for (j=1;j<=4;j++) {
