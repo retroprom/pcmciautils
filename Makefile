@@ -20,6 +20,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
+help:
+	@echo "Common targets:"
+	@echo "  all		- build the standard set of utilities"
+	@echo "  debugtools	- build the debugging utilities"
+
 # Set this to 'false' if you do not need the socket-startup script
 # 
 # You don't need it if the socket driver does not select
