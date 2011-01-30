@@ -30,7 +30,6 @@
 #define IS_ATTR         1
 #define IS_INDIRECT     8
 
-
 static unsigned int functions;
 static unsigned char cis_copy[MAX_TUPLES];
 static unsigned int cis_length = MAX_TUPLES;
@@ -43,32 +42,6 @@ static void read_cis(int attr, unsigned int addr, unsigned int len, void *ptr)
 	    memset(ptr, 0xff, len);
 	return;
 }
-
-int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple);
-
-int pcmcia_get_first_tuple(unsigned int function, tuple_t *tuple)
-{
-	tuple->TupleLink = 0;
-	tuple->Flags.link_space = tuple->Flags.mfc_fn = 0;
-	/* Assume presence of a LONGLINK_C to address 0 */
-	tuple->CISOffset = tuple->LinkOffset = 0;
-	tuple->Flags.space = tuple->Flags.has_link = 1;
-
-	if ((functions > 1) &&
-	    !(tuple->Attributes & TUPLE_RETURN_COMMON)) {
-		unsigned char req = tuple->DesiredTuple;
-		tuple->DesiredTuple = CISTPL_LONGLINK_MFC;
-		if (!pcmcia_get_next_tuple(function, tuple)) {
-			tuple->DesiredTuple = CISTPL_LINKTARGET;
-			if (pcmcia_get_next_tuple(function, tuple))
-				return -ENODEV;
-		} else
-			tuple->CISOffset = tuple->TupleLink = 0;
-		tuple->DesiredTuple = req;
-	}
-	return pcmcia_get_next_tuple(function, tuple);
-}
-
 
 static int follow_link(tuple_t *tuple)
 {
@@ -196,6 +169,29 @@ int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple)
 	return 0;
 }
 
+int pcmcia_get_first_tuple(unsigned int function, tuple_t *tuple)
+{
+	tuple->TupleLink = 0;
+	tuple->Flags.link_space = tuple->Flags.mfc_fn = 0;
+	/* Assume presence of a LONGLINK_C to address 0 */
+	tuple->CISOffset = tuple->LinkOffset = 0;
+	tuple->Flags.space = tuple->Flags.has_link = 1;
+
+	if ((functions > 1) &&
+	    !(tuple->Attributes & TUPLE_RETURN_COMMON)) {
+		unsigned char req = tuple->DesiredTuple;
+		tuple->DesiredTuple = CISTPL_LONGLINK_MFC;
+		if (!pcmcia_get_next_tuple(function, tuple)) {
+			tuple->DesiredTuple = CISTPL_LINKTARGET;
+			if (pcmcia_get_next_tuple(function, tuple))
+				return -ENODEV;
+		} else
+			tuple->CISOffset = tuple->TupleLink = 0;
+		tuple->DesiredTuple = req;
+	}
+	return pcmcia_get_next_tuple(function, tuple);
+}
+
 #define _MIN(a, b)              (((a) < (b)) ? (a) : (b))
 
 int pcmcia_get_tuple_data(tuple_t *tuple)
@@ -218,7 +214,7 @@ int pcmcia_get_tuple_data(tuple_t *tuple)
 }
 
 
-int read_out_cis (unsigned int socket_no, FILE *fd)
+int read_out_cis(unsigned int socket_no, FILE *fd)
 {
         char file[SYSFS_PATH_MAX];
         int ret, i;
