@@ -79,9 +79,6 @@ static int pccardctl_echo_one(unsigned long socket_no, const char *in_file)
         char file[SYSFS_PATH_MAX];
         struct sysfs_attribute *attr;
 
-	if (!in_file)
-		return -EINVAL;
-
         snprintf(file, SYSFS_PATH_MAX, "/sys/class/pcmcia_socket/pcmcia_socket%lu/%s",
                  socket_no, in_file);
 
