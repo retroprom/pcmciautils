@@ -552,10 +552,17 @@ typedef union cisparse_t {
     cistpl_format_t		format;
 } cisparse_t;
 
+typedef struct tuple_flags {
+    unsigned int               link_space:4;
+    unsigned int               has_link:1;
+    unsigned int               mfc_fn:3;
+    unsigned int               space:4;
+} tuple_flags;
+
 typedef struct tuple_t {
     unsigned int	Attributes;
     unsigned char 	DesiredTuple;
-    unsigned int	Flags;		/* internal use */
+    tuple_flags		Flags;		/* internal use */
     unsigned int	LinkOffset;	/* internal use */
     unsigned int	CISOffset;	/* internal use */
     unsigned char	TupleCode;
@@ -585,13 +592,6 @@ typedef struct cisdump_t {
     unsigned int	Length;
     unsigned char	Data[CISTPL_MAX_CIS_SIZE];
 } cisdump_t;
-
-typedef struct tuple_flags {
-    unsigned int               link_space:4;
-    unsigned int               has_link:1;
-    unsigned int               mfc_fn:3;
-    unsigned int               space:4;
-} tuple_flags;
 
 #define BIND_FN_ALL        0xff
 

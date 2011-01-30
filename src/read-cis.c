@@ -36,10 +36,10 @@ static unsigned char cis_copy[MAX_TUPLES];
 static unsigned int cis_length = MAX_TUPLES;
 
 
-#define SPACE(f)       (((tuple_flags *)(&(f)))->space)
-#define HAS_LINK(f)    (((tuple_flags *)(&(f)))->has_link)
-#define LINK_SPACE(f)  (((tuple_flags *)(&(f)))->link_space)
-#define MFC_FN(f)      (((tuple_flags *)(&(f)))->mfc_fn)
+#define SPACE(f)       ((f).space)
+#define HAS_LINK(f)    ((f).has_link)
+#define LINK_SPACE(f)  ((f).link_space)
+#define MFC_FN(f)      ((f).mfc_fn)
 
 
 static void read_cis(int attr, unsigned int addr, unsigned int len, void *ptr)
@@ -55,12 +55,12 @@ int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple);
 
 int pcmcia_get_first_tuple(unsigned int function, tuple_t *tuple)
 {
-	tuple->TupleLink = tuple->Flags = 0;
-	{
-		/* Assume presence of a LONGLINK_C to address 0 */
-		tuple->CISOffset = tuple->LinkOffset = 0;
-		SPACE(tuple->Flags) = HAS_LINK(tuple->Flags) = 1;
-	}
+	tuple->TupleLink = 0;
+	LINK_SPACE(tuple->Flags) = MFC_FN(tuple->Flags) = 0;
+	/* Assume presence of a LONGLINK_C to address 0 */
+	tuple->CISOffset = tuple->LinkOffset = 0;
+	SPACE(tuple->Flags) = HAS_LINK(tuple->Flags) = 1;
+
 	if ((functions > 1) &&
 	    !(tuple->Attributes & TUPLE_RETURN_COMMON)) {
 		unsigned char req = tuple->DesiredTuple;
