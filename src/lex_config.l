@@ -1,5 +1,6 @@
 /* Special state for handling include files */
 %x src
+%option noinput nounput
 
 %{
 /*
