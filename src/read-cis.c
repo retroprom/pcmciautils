@@ -35,13 +35,6 @@ static unsigned int functions;
 static unsigned char cis_copy[MAX_TUPLES];
 static unsigned int cis_length = MAX_TUPLES;
 
-
-#define SPACE(f)       ((f).space)
-#define HAS_LINK(f)    ((f).has_link)
-#define LINK_SPACE(f)  ((f).link_space)
-#define MFC_FN(f)      ((f).mfc_fn)
-
-
 static void read_cis(int attr, unsigned int addr, unsigned int len, void *ptr)
 {
 	if (cis_length > addr+len)
@@ -56,10 +49,10 @@ int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple);
 int pcmcia_get_first_tuple(unsigned int function, tuple_t *tuple)
 {
 	tuple->TupleLink = 0;
-	LINK_SPACE(tuple->Flags) = MFC_FN(tuple->Flags) = 0;
+	tuple->Flags.link_space = tuple->Flags.mfc_fn = 0;
 	/* Assume presence of a LONGLINK_C to address 0 */
 	tuple->CISOffset = tuple->LinkOffset = 0;
-	SPACE(tuple->Flags) = HAS_LINK(tuple->Flags) = 1;
+	tuple->Flags.space = tuple->Flags.has_link = 1;
 
 	if ((functions > 1) &&
 	    !(tuple->Attributes & TUPLE_RETURN_COMMON)) {
@@ -82,33 +75,33 @@ static int follow_link(tuple_t *tuple)
 	unsigned char link[5];
 	unsigned int ofs;
 
-	if (MFC_FN(tuple->Flags)) {
+	if (tuple->Flags.mfc_fn) {
 		/* Get indirect link from the MFC tuple */
-		read_cis(LINK_SPACE(tuple->Flags),
+		read_cis(tuple->Flags.link_space,
 			       tuple->LinkOffset, 5, link);
 		ofs = *(u_int *)(link+1);
-		SPACE(tuple->Flags) = (link[0] == CISTPL_MFC_ATTR);
+		tuple->Flags.space = (link[0] == CISTPL_MFC_ATTR);
 		/* Move to the next indirect link */
 		tuple->LinkOffset += 5;
-		MFC_FN(tuple->Flags)--;
-	} else if (HAS_LINK(tuple->Flags)) {
+		tuple->Flags.mfc_fn--;
+	} else if (tuple->Flags.has_link) {
 		ofs = tuple->LinkOffset;
-		SPACE(tuple->Flags) = LINK_SPACE(tuple->Flags);
-		HAS_LINK(tuple->Flags) = 0;
+		tuple->Flags.space = tuple->Flags.link_space;
+		tuple->Flags.has_link = 0;
 	} else {
 		return -1;
 	}
-	if (SPACE(tuple->Flags)) {
+	if (tuple->Flags.space) {
 		/* This is ugly, but a common CIS error is to code the long
 		   link offset incorrectly, so we check the right spot... */
-		read_cis(SPACE(tuple->Flags), ofs, 5, link);
+		read_cis(tuple->Flags.space, ofs, 5, link);
 		if ((link[0] == CISTPL_LINKTARGET) && (link[1] >= 3) &&
 		    (strncmp(link+2, "CIS", 3) == 0))
 			return ofs;
 		/* Then, we try the wrong spot... */
 		ofs = ofs >> 1;
 	}
-	read_cis(SPACE(tuple->Flags), ofs, 5, link);
+	read_cis(tuple->Flags.space, ofs, 5, link);
 	if ((link[0] == CISTPL_LINKTARGET) && (link[1] >= 3) &&
 	    (strncmp(link+2, "CIS", 3) == 0))
 		return ofs;
@@ -122,7 +115,7 @@ int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple)
 
 	link[1] = tuple->TupleLink;
 	ofs = tuple->CISOffset + tuple->TupleLink;
-	attr = SPACE(tuple->Flags);
+	attr = tuple->Flags.space;
 
 	for (i = 0; i < MAX_TUPLES; i++) {
 		if (link[1] == 0xff) {
@@ -138,7 +131,7 @@ int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple)
 		if (link[0] == CISTPL_END) {
 			if ((ofs = follow_link(tuple)) < 0)
 				return -ENODEV;
-			attr = SPACE(tuple->Flags);
+			attr = tuple->Flags.space;
 			read_cis(attr, ofs, 2, link);
 		}
 
@@ -151,35 +144,35 @@ int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple)
 		    (link[0] == CISTPL_NO_LINK)) {
 			switch (link[0]) {
 			case CISTPL_LONGLINK_A:
-				HAS_LINK(tuple->Flags) = 1;
-				LINK_SPACE(tuple->Flags) = attr | IS_ATTR;
+				tuple->Flags.has_link = 1;
+				tuple->Flags.link_space = attr | IS_ATTR;
 				read_cis(attr, ofs+2, 4, &tuple->LinkOffset);
 				break;
 			case CISTPL_LONGLINK_C:
-				HAS_LINK(tuple->Flags) = 1;
-				LINK_SPACE(tuple->Flags) = attr & ~IS_ATTR;
+				tuple->Flags.has_link = 1;
+				tuple->Flags.link_space = attr & ~IS_ATTR;
 				read_cis(attr, ofs+2, 4, &tuple->LinkOffset);
 				break;
 			case CISTPL_INDIRECT:
-				HAS_LINK(tuple->Flags) = 1;
-				LINK_SPACE(tuple->Flags) = IS_ATTR | IS_INDIRECT;
+				tuple->Flags.has_link = 1;
+				tuple->Flags.link_space = IS_ATTR | IS_INDIRECT;
 				tuple->LinkOffset = 0;
 				break;
 			case CISTPL_LONGLINK_MFC:
 				tuple->LinkOffset = ofs + 3;
-				LINK_SPACE(tuple->Flags) = attr;
+				tuple->Flags.link_space = attr;
 				if (function == BIND_FN_ALL) {
 					/* Follow all the MFC links */
 					read_cis(attr, ofs+2, 1, &tmp);
-					MFC_FN(tuple->Flags) = tmp;
+					tuple->Flags.mfc_fn = tmp;
 				} else {
 					/* Follow exactly one of the links */
-					MFC_FN(tuple->Flags) = 1;
+					tuple->Flags.mfc_fn = 1;
 					tuple->LinkOffset += function * 5;
 				}
 				break;
 			case CISTPL_NO_LINK:
-				HAS_LINK(tuple->Flags) = 0;
+				tuple->Flags.has_link = 0;
 				break;
 			}
 			if ((tuple->Attributes & TUPLE_RETURN_LINK) &&
@@ -216,7 +209,7 @@ int pcmcia_get_tuple_data(tuple_t *tuple)
 	if (len == 0)
 		return 0;
 
-	read_cis (SPACE(tuple->Flags),
+	read_cis (tuple->Flags.space,
 		  tuple->CISOffset + tuple->TupleOffset,
 		  _MIN(len, tuple->TupleDataMax),
 		  tuple->TupleData);
