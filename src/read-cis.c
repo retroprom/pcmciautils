@@ -37,9 +37,9 @@ static unsigned int cis_length = MAX_TUPLES;
 static void read_cis(int attr, unsigned int addr, unsigned int len, void *ptr)
 {
 	if (cis_length > addr+len)
-	    memcpy(ptr, cis_copy+addr, len);
+		memcpy(ptr, cis_copy + addr, len);
 	else
-	    memset(ptr, 0xff, len);
+		memset(ptr, 0xff, len);
 	return;
 }
 
@@ -102,7 +102,8 @@ int pcmcia_get_next_tuple(unsigned int function, tuple_t *tuple)
 
 		/* End of chain?  Follow long link if possible */
 		if (link[0] == CISTPL_END) {
-			if ((ofs = follow_link(tuple)) < 0)
+			ofs = follow_link(tuple);
+			if (ofs < 0)
 				return -ENODEV;
 			attr = tuple->Flags.space;
 			read_cis(attr, ofs, 2, link);
@@ -205,10 +206,10 @@ int pcmcia_get_tuple_data(tuple_t *tuple)
 	if (len == 0)
 		return 0;
 
-	read_cis (tuple->Flags.space,
-		  tuple->CISOffset + tuple->TupleOffset,
-		  _MIN(len, tuple->TupleDataMax),
-		  tuple->TupleData);
+	read_cis(tuple->Flags.space,
+		tuple->CISOffset + tuple->TupleOffset,
+		_MIN(len, tuple->TupleDataMax),
+		tuple->TupleData);
 
 	return 0;
 }
@@ -216,12 +217,12 @@ int pcmcia_get_tuple_data(tuple_t *tuple)
 
 int read_out_cis(unsigned int socket_no, FILE *fd)
 {
-        char file[SYSFS_PATH_MAX];
-        int ret, i;
+	char file[SYSFS_PATH_MAX];
+	int ret, i;
 	tuple_t tuple;
 	unsigned char buf[256];
 
-        snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET "pcmcia_socket%d/cis",
+	snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET "pcmcia_socket%d/cis",
 		 socket_no);
 
 	if (!fd) {
@@ -230,7 +231,7 @@ int read_out_cis(unsigned int socket_no, FILE *fd)
 			return -EIO;
 	}
 
-	for (i=0; i<MAX_TUPLES; i++) {
+	for (i = 0; i < MAX_TUPLES; i++) {
 		ret = fgetc(fd);
 		if (ret == EOF) {
 			cis_length = i + 1;

@@ -15,29 +15,29 @@
 
 /* for AdjustResourceInfo */
 typedef struct adjust_t {
-    unsigned int	Action;
-    unsigned int	Resource;
-    unsigned int	Attributes;
-    union {
-	struct memory {
-	    unsigned long	Base;
-	    unsigned long	Size;
-	} memory;
-	struct io {
-	    unsigned long	BasePort;
-	    unsigned long	NumPorts;
-	    unsigned int	IOAddrLines;
-	} io;
-	struct irq {
-	    unsigned int	IRQ;
-	} irq;
-    } resource;
+	unsigned int	Action;
+	unsigned int	Resource;
+	unsigned int	Attributes;
+	union {
+		struct memory {
+			unsigned long	Base;
+			unsigned long	Size;
+		} memory;
+		struct io {
+			unsigned long	BasePort;
+			unsigned long	NumPorts;
+			unsigned int	IOAddrLines;
+		} io;
+		struct irq {
+			unsigned int	IRQ;
+		} irq;
+	} resource;
 } adjust_t;
 
 
 typedef struct adjust_list_t {
 	adjust_t		adj;
-    struct adjust_list_t *next;
+	struct adjust_list_t *next;
 } adjust_list_t;
 
 

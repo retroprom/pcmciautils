@@ -10,7 +10,7 @@
  *
  * License: GPL v2
  */
-    
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -20,14 +20,15 @@
 
 #include "startup.h"
 
-/* If bison: generate nicer error messages */ 
+/* If bison: generate nicer error messages */
 #define YYERROR_VERBOSE 1
- 
+
 /* from lex_config, for nice error messages */
 extern char *current_file;
 extern int current_lineno;
 
 void yyerror(char *msg, ...);
+int yylex(void);
 
 %}
 

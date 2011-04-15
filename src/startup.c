@@ -25,19 +25,19 @@
 #ifdef DEBUG
 #define dprintf printf
 #else
-#define dprintf(...) do { } while(0);
+#define dprintf(...) do { } while (0);
 #endif
 
 /* Linked list of resource adjustments */
-struct adjust_list_t *root_adjust = NULL;
+struct adjust_list_t *root_adjust;
 
 /* path for config file, device scripts */
 static char *configpath = "/etc/pcmcia";
 
 enum {
-        RESOURCE_MEM,
-        RESOURCE_IO,
-        MAX_RESOURCE_FILES
+	RESOURCE_MEM,
+	RESOURCE_IO,
+	MAX_RESOURCE_FILES
 };
 
 
@@ -70,7 +70,7 @@ static int add_available_resource(unsigned int socket_no, unsigned int type,
 	snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET "pcmcia_socket%u/%s",
 		socket_no, resource_files[type]);
 
-	switch(action) {
+	switch (action) {
 	case ADD_MANAGED_RESOURCE:
 		len = snprintf(content, SYSFS_PATH_MAX,
 			       "0x%08lx - 0x%08lx", start, end);
@@ -101,7 +101,7 @@ static int add_available_resource(unsigned int socket_no, unsigned int type,
 
 	sysfs_close_attribute(attr);
 
-	return (ret);
+	return ret;
 }
 
 static int setup_done(unsigned int socket_no)
@@ -122,7 +122,7 @@ static int setup_done(unsigned int socket_no)
 
 	sysfs_close_attribute(attr);
 
-	return (ret);
+	return ret;
 }
 
 
@@ -176,47 +176,48 @@ static int disallow_irq(unsigned int socket_no, unsigned int irq)
  out:
 	sysfs_close_attribute(attr);
 
-	return (ret);
+	return ret;
 }
 
 
 static void load_config(void)
 {
-    if (chdir(configpath) != 0) {
-	syslog(LOG_ERR, "chdir to %s failed: %m", configpath);
-	exit(EXIT_FAILURE);
-    }
-    parse_configfile("config.opts");
-    return;
+	if (chdir(configpath) != 0) {
+		syslog(LOG_ERR, "chdir to %s failed: %m", configpath);
+		exit(EXIT_FAILURE);
+	}
+	parse_configfile("config.opts");
+	return;
 }
 
 
 static void adjust_resources(unsigned int socket_no)
 {
-    adjust_list_t *al;
+	adjust_list_t *al;
 
-    for (al = root_adjust; al; al = al->next) {
-	    switch (al->adj.Resource) {
-	    case RES_MEMORY_RANGE:
-		    add_available_resource(socket_no, RESOURCE_MEM,
-					   al->adj.Action,
-					   al->adj.resource.memory.Base,
-					   al->adj.resource.memory.Base +
-					   al->adj.resource.memory.Size - 1);
-		    break;
-	    case RES_IO_RANGE:
-		    add_available_resource(socket_no, RESOURCE_IO,
-					   al->adj.Action,
-					   al->adj.resource.io.BasePort,
-					   al->adj.resource.io.BasePort +
-					   al->adj.resource.io.NumPorts - 1);
-		    break;
-	    case RES_IRQ:
-		    if(al->adj.Action == REMOVE_MANAGED_RESOURCE)
-			    disallow_irq(socket_no, al->adj.resource.irq.IRQ);
-		    break;
-	    }
-    }
+	for (al = root_adjust; al; al = al->next) {
+		switch (al->adj.Resource) {
+		case RES_MEMORY_RANGE:
+			add_available_resource(socket_no, RESOURCE_MEM,
+					al->adj.Action,
+					al->adj.resource.memory.Base,
+					al->adj.resource.memory.Base +
+					al->adj.resource.memory.Size - 1);
+			break;
+		case RES_IO_RANGE:
+			add_available_resource(socket_no, RESOURCE_IO,
+					al->adj.Action,
+					al->adj.resource.io.BasePort,
+					al->adj.resource.io.BasePort +
+					al->adj.resource.io.NumPorts - 1);
+			break;
+		case RES_IRQ:
+			if (al->adj.Action == REMOVE_MANAGED_RESOURCE)
+				disallow_irq(socket_no,
+					al->adj.resource.irq.IRQ);
+			break;
+		}
+	}
 }
 
 
@@ -226,17 +227,16 @@ int main(int argc, char *argv[])
 	unsigned long socket, i;
 	unsigned int all_sockets = 0;
 
-
-	if ((socket_no = getenv("SOCKET_NO"))) {
+	socket_no = getenv("SOCKET_NO");
+	if (socket_no)
 		socket = strtoul(socket_no, NULL, 0);
-	} else if (argc == 2) {
+	else if (argc == 2)
 		socket = strtoul(argv[1], NULL, 0);
-	} else if (argc == 1) {
+	else if (argc == 1) {
 		socket = 0;
 		all_sockets = 1;
-	} else {
+	} else
 		return -EINVAL;
-	}
 
 	load_config();
 

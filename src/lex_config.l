@@ -37,6 +37,8 @@
 char *current_file;
 int current_lineno;
 
+int yyparse(void);
+
 static int lex_number(char *s);
 static int lex_string(char *s);
 static void do_source(char *fn);
@@ -128,7 +130,7 @@ static int get_glob(void)
     while (s->fileno < s->word.we_wordc) {
 	char *fn = s->word.we_wordv[s->fileno];
 #else
-    while (s->fileno < s->glob.gl_pathc) {
+    while (s->fileno < (signed int) s->glob.gl_pathc) {
 	char *fn = s->glob.gl_pathv[s->fileno];
 #endif
 	s->file = fopen(fn, "r");
@@ -204,7 +206,7 @@ static int do_eof(void)
 int parse_configfile(char *fn)
 {
     FILE *f;
-    
+
     f = fopen(fn, "r");
     if (!f) {
 	syslog(LOG_ERR, "could not open '%s': %m", fn);

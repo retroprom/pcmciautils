@@ -50,33 +50,35 @@ static const struct needs_cis cis_table[] = {
 	{ },
 };
 
-int device_has_driver() {
+static int device_has_driver()
+{
 	char *devpath, *path;
 	struct stat sbuf;
 
 	devpath = getenv("DEVPATH");
 	if (!devpath)
-		return ENODEV;
-	path = alloca(strlen(devpath)+15);
-	sprintf(path,"/sys/%s/driver", devpath);
-	if (!stat(path,&sbuf)) {
+		return -ENODEV;
+	path = alloca(strlen(devpath) + 15);
+	sprintf(path, "/sys/%s/driver", devpath);
+	if (!stat(path, &sbuf))
 		return 1;
-	}
+
 	return 0;
 }
 
-char *read_cis(char *cis_file, int *size) {
+static char *read_cis(char *cis_file, int *size)
+{
 	char *cis_path;
 	char *ret;
 	int rc, cis_fd;
 	struct stat sbuf;
 
 	cis_path = alloca(strlen(FIRMWARE_PATH) + strlen(cis_file) + 2);
-	sprintf(cis_path,"%s/%s", FIRMWARE_PATH, cis_file);
+	sprintf(cis_path, "%s/%s", FIRMWARE_PATH, cis_file);
 	cis_fd = open(cis_path, O_RDONLY);
 	if (cis_fd == -1) {
 		cis_path = alloca(strlen(CIS_PATH) + strlen(cis_file) + 2);
-		sprintf(cis_path,"%s/%s", CIS_PATH, cis_file);
+		sprintf(cis_path, "%s/%s", CIS_PATH, cis_file);
 		if (cis_fd == -1) {
 			rc = errno;
 			errno = rc;
@@ -103,17 +105,17 @@ char *read_cis(char *cis_file, int *size) {
 	return ret;
 }
 
-int write_cis(char *cis, int socket_no, int size) {
+static int write_cis(char *cis, int socket_no, int size)
+{
 	char *cis_path;
 	int cis_fd, count, rc;
 
 	cis_path = alloca(strlen(SOCKET_PATH) + 2);
-	sprintf(cis_path,SOCKET_PATH, socket_no);
+	sprintf(cis_path, SOCKET_PATH, socket_no);
 
 	cis_fd = open(cis_path, O_RDWR);
-	if (cis_fd == -1) {
+	if (cis_fd == -1)
 		return errno;
-	}
 
 	count = 0;
 	while (count < size) {
@@ -131,13 +133,13 @@ int write_cis(char *cis, int socket_no, int size) {
 	return 0;
 }
 
-int repair_cis(char *cis_file, int socket_no) {
+static int repair_cis(char *cis_file, int socket_no)
+{
 	char *cis;
 	int rc, size;
 
-	if (device_has_driver()) {
+	if (device_has_driver())
 		return 0;
-	}
 
 	cis = read_cis(cis_file, &size);
 	if (!cis)
@@ -148,7 +150,8 @@ int repair_cis(char *cis_file, int socket_no) {
 	return rc;
 }
 
-static void usage(const char *progname) {
+static void usage(const char *progname)
+{
 	fprintf(stderr,
 		"Usage: %s [-r|--repair] <socketname>\n", progname);
 	exit(1);
@@ -157,11 +160,12 @@ static void usage(const char *progname) {
 static struct option options[] = { { "repair", 0, NULL, 'r' },
 				   { NULL, 0, NULL, 0 } };
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	int ret;
 	char *socket;
 	unsigned int socket_no;
-	const struct needs_cis * entry = NULL;
+	const struct needs_cis *entry = NULL;
 	tuple_t tuple;
 	unsigned char buf[256];
 	int opt;
@@ -176,9 +180,11 @@ int main(int argc, char **argv) {
 			usage(argv[0]);
 		}
 	}
-	if ((socket = getenv("SOCKET_NO"))) {
-		socket_no = (unsigned int)strtoul(socket, NULL, 0);
-	} else {
+
+	socket = getenv("SOCKET_NO");
+	if (socket)
+		socket_no = (unsigned int) strtoul(socket, NULL, 0);
+	else {
 		if (argc < optind + 1)
 			usage(argv[0]);
 		socket_no = strtoul(argv[optind], NULL, 0);
@@ -186,7 +192,7 @@ int main(int argc, char **argv) {
 
 	ret = read_out_cis(socket_no, NULL);
 	if (ret)
-		return (ret);
+		return ret;
 
 	entry = &cis_table[0];
 
