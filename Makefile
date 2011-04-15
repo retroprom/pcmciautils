@@ -34,23 +34,23 @@ help:
 # and for yenta_socket if the cardbus bridge is either below a
 # PCI-PCI bridge, or where the PCI bus is not equivalent to the host
 # bus (e.g. on PPC)
-STARTUP = true
+STARTUP ?= true
 
 # Set this to true if you want to use 'udev' instead of 'hotplug'
 # to invoke the necessary pcmciautils commands.
-UDEV = true
+UDEV ?= true
 
 # Set the following to `true' to log the debug
 # and make a unstripped, unoptimized  binary.
 # Leave this set to `false' for production use.
-DEBUG = false
+DEBUG ?= false
 
 # Set this to true if you want to statically link the binaries
 # to be compiled.
-STATIC = false
+STATIC ?= false
 
 # make the build silent. Set this to something else to make it noisy again.
-V = false
+V ?= false
 
 
 PCCARDCTL =			pccardctl
