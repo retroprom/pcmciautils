@@ -15,9 +15,10 @@
 #include <string.h>
 #include <errno.h>
 #include <syslog.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
-
-#include <sysfs/libsysfs.h>
 
 #include "startup.h"
 
@@ -48,6 +49,46 @@ static const char *resource_files[MAX_RESOURCE_FILES] = {
 
 #define PATH_TO_SOCKET "/sys/class/pcmcia_socket/"
 
+#define SYSFS_PATH_MAX 255
+
+
+static int sysfs_read_file(const char *fname, char *buf, size_t buflen)
+{
+	ssize_t numread;
+	int fd;
+	int ret = 0;
+
+	fd = open(fname, O_RDONLY);
+	if (fd <= 0)
+		return fd;
+
+	numread = read(fd, buf, buflen - 1);
+	if (numread < 1)
+		ret = -EIO;
+	else
+		buf[numread] = '\0';
+
+	close(fd);
+	return ret;
+}
+
+static int sysfs_write_file(const char *fname, const char *value, size_t len)
+{
+	ssize_t numwrite;
+	int fd;
+	int ret = 0;
+
+	fd = open(fname, O_WRONLY);
+	if (fd <= 0)
+		return fd;
+
+	numwrite = write(fd, value, len);
+	if ((numwrite < 1) || ((size_t) numwrite != len))
+		ret = -EIO;
+
+	close(fd);
+	return ret;
+}
 
 static int add_available_resource(unsigned int socket_no, unsigned int type,
 				  unsigned int action,
@@ -55,7 +96,6 @@ static int add_available_resource(unsigned int socket_no, unsigned int type,
 {
 	char file[SYSFS_PATH_MAX];
 	char content[SYSFS_PATH_MAX];
-	struct sysfs_attribute *attr;
 	int ret;
 	size_t len;
 
@@ -85,44 +125,24 @@ static int add_available_resource(unsigned int socket_no, unsigned int type,
 		return -EINVAL;
 	}
 
-	dprintf("content is %s\n", content);
+	dprintf("content is %s, file is %s\n", content, file);
 
-	dprintf("file is %s\n", file);
-
-	attr = sysfs_open_attribute(file);
-	if (!attr)
-		return -ENODEV;
-
-	dprintf("open, len %zu\n", len);
-
-	ret = sysfs_write_attribute(attr, content, len);
+	ret = sysfs_write_file(file, content, len);
 
 	dprintf("ret is %d\n", ret);
-
-	sysfs_close_attribute(attr);
 
 	return ret;
 }
 
 static int setup_done(unsigned int socket_no)
 {
-	int ret;
 	char file[SYSFS_PATH_MAX];
-	struct sysfs_attribute *attr;
 
 	snprintf(file, SYSFS_PATH_MAX, PATH_TO_SOCKET
 		 "pcmcia_socket%u/available_resources_setup_done",
 		 socket_no);
 
-	attr = sysfs_open_attribute(file);
-	if (!attr)
-		return -ENODEV;
-
-	ret = sysfs_write_attribute(attr, "42", 2);
-
-	sysfs_close_attribute(attr);
-
-	return ret;
+	return sysfs_write_file(file, "42", 2);
 }
 
 
@@ -130,7 +150,6 @@ static int disallow_irq(unsigned int socket_no, unsigned int irq)
 {
 	char file[SYSFS_PATH_MAX];
 	char content[SYSFS_PATH_MAX];
-	struct sysfs_attribute *attr;
 	unsigned int mask = 0xfff;
 	unsigned int new_mask;
 	int ret;
@@ -144,24 +163,13 @@ static int disallow_irq(unsigned int socket_no, unsigned int irq)
 		 socket_no);
 	dprintf("file is %s\n", file);
 
-	attr = sysfs_open_attribute(file);
-	if (!attr)
+	ret = sysfs_read_file(file, content, SYSFS_PATH_MAX);
+	if (ret)
 		return -ENODEV;
 
-	dprintf("open, len %zu\n", len);
-
-	ret = sysfs_read_attribute(attr);
-	if (ret) {
-		ret = -EINVAL;
-		goto out;
-	}
-
-	if (!attr->value || (attr->len < 6)) {
-		ret = -EIO;
-		goto out;
-	}
-
-	ret = sscanf(attr->value, "0x%x\n", &mask);
+	ret = sscanf(content, "0x%x\n", &mask);
+	if (ret != 1)
+		return -EIO;
 
 	new_mask = 1 << irq;
 
@@ -171,12 +179,7 @@ static int disallow_irq(unsigned int socket_no, unsigned int irq)
 
 	dprintf("content is %s\n", content);
 
-	ret = sysfs_write_attribute(attr, content, len);
-
- out:
-	sysfs_close_attribute(attr);
-
-	return ret;
+	return sysfs_write_file(file, content, len);
 }
 
 

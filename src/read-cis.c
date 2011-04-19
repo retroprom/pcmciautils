@@ -18,11 +18,10 @@
 #include <errno.h>
 #include <syslog.h>
 
-#include <sysfs/libsysfs.h>
-
 #include "cistpl.h"
 
 #define MAX_TUPLES                0x200
+#define SYSFS_PATH_MAX 255
 
 #define PATH_TO_SOCKET "/sys/class/pcmcia_socket/"
 

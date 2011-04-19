@@ -156,12 +156,12 @@ CFLAGS +=	-I$(PWD)/src
 
 CFLAGS += $(WARNINGS) -I$(GCCINCDIR)
 
-LIB_OBJS = -lc -lsysfs
+LIB_OBJS = -lc
 LIB_PLAIN_OBJS = -lc
 LIB_PCI_OBJS = -lc -lpci
 
 ifeq ($(strip $(STATIC)),true)
-	LIB_OBJS = -lsysfs
+	LIB_OBJS = 
 	LIB_PLAIN_OBJS =
 	LIB_PCI_OBJS = -lpci
 	LDFLAGS += -static
