@@ -170,11 +170,11 @@ else
 endif
 
 ifeq ($(strip $(V)),false)
-	QUIET=@$(PWD)/build/ccdv
-	HOST_PROGS=build/ccdv
+	QUIET=@
+	ECHO=@echo
 else
 	QUIET=
-	HOST_PROGS=
+	ECHO= @\#
 endif
 
 # if DEBUG is enabled, then we do not strip or optimize
@@ -219,48 +219,57 @@ endif
 UDEV_RULES += udev/rules-end
 
 
-all: ccdv $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP_BUILD) udevrules
+all: $(PCCARDCTL) $(PCMCIA_CHECK_BROKEN_CIS) $(PCMCIA_SOCKET_STARTUP_BUILD) $(UDEV_RULES_FILE)
 
-ccdv: build/ccdv
-build/ccdv: build/ccdv.c
-	@echo "Building ccdv"
-	@$(HOSTCC) -O1 $< -o $@
-
-%.o : %.c ccdv
-	$(QUIET) $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+%.o : %.c
+	$(ECHO) "  CC      " $@
+	$(QUIET) $(CC) -c $(CFLAGS) $< -o $@
 
 %.c %.h : %.y
-	$(YACC) $(YFLAGS) $<
-	mv y.tab.c $*.c
-	mv y.tab.h $*.h
+	$(ECHO) "  YACC    " $@
+	$(QUIET) $(YACC) $(YFLAGS) $<
+	$(QUIET) mv y.tab.c $*.c
+	$(QUIET) mv y.tab.h $*.h
 
 $(PCCARDCTL): $(LIBC) src/$(PCCARDCTL).o src/$(PCCARDCTL).c $(OBJS) $(HEADERS)
+	$(ECHO) "  LD      " $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCCARDCTL).o $(LIB_OBJS) $(ARCH_LIB_OBJS)
+	$(ECHO) "  STRIP   " $@
 	$(QUIET) $(STRIPCMD) $@
 
 $(PCMCIA_CHECK_BROKEN_CIS): $(LIBC) src/$(PCMCIA_CHECK_BROKEN_CIS).o src/read-cis.o $(OBJS) $(HEADERS)
+	$(ECHO) "  LD      " $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/$(PCMCIA_CHECK_BROKEN_CIS).o src/read-cis.o $(LIB_PLAIN_OBJS) $(ARCH_LIB_OBJS)
+	$(ECHO) "  STRIP   " $@
 	$(QUIET) $(STRIPCMD) $@
 
 $(PCMCIA_SOCKET_STARTUP): $(LIBC) src/startup.o src/yacc_config.o src/lex_config.o $(OBJS) $(HEADERS)
+	$(ECHO) "  LD      " $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) src/startup.o src/yacc_config.o src/lex_config.o $(LIB_OBJS) $(ARCH_LIB_OBJS)
+	$(ECHO) "  STRIP   " $@
 	$(QUIET) $(STRIPCMD) $@
 
 yacc_config.o lex_config.o: %.o: %.c
-	$(CC) -c -MD -O -pipe $(CPPFLAGS) $<
+	$(ECHO) "  CC      " $@
+	$(QUIET) $(CC) -c -MD -O -pipe $(CFLAGS) $<
 
-debugtools: ccdv $(CBDUMP) $(CISDUMP)
+debugtools: $(CBDUMP) $(CISDUMP)
 
 $(CBDUMP): $(LIBC) debug/cbdump.o
+	$(ECHO) "  LD      " $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) debug/$(CBDUMP).o $(LIB_PCI_OBJS) $(ARCH_LIB_OBJS)
+	$(ECHO) "  STRIP   " $@
 	$(QUIET) $(STRIPCMD) $@
 
 $(CISDUMP): $(LIBC) src/read-cis.o debug/parse_cis.o debug/dump_cis.o
+	$(ECHO) "  LD      " $@
 	$(QUIET) $(LD) $(LDFLAGS) -o $@ $(CRT0) debug/$(CISDUMP).o src/read-cis.o debug/parse_cis.o $(LIB_OBJS) $(ARCH_LIB_OBJS)
+	$(ECHO) "  STRIP   " $@
 	$(QUIET) $(STRIPCMD) $@
 
-udevrules:
-	cat $(UDEV_RULES) | sed -e "s#__UDEVHELPERDIR__#${udevhelperdir}#g" > $(UDEV_RULES_FILE)
+$(UDEV_RULES_FILE): $(UDEV_RULES)
+	$(ECHO) "  SED     " $@
+	@cat $(UDEV_RULES) | sed -e "s#__UDEVHELPERDIR__#${udevhelperdir}#g" > $@
 
 clean:
 	-find . \( -not -type d \) -and \( -name '*~' -o -name '*.[oas]' \) -type f -print \
@@ -269,7 +278,6 @@ clean:
 	-rm -f $(CBDUMP) $(CISDUMP)
 	-rm -f src/yacc_config.c src/yacc_config.d src/lex_config.c src/lex_config.d src/yacc_config.h
 	-rm -f udev/60-pcmcia.rules
-	-rm -f build/ccdv
 
 install-hotplug:
 	$(INSTALL) -d $(DESTDIR)$(hotplugdir)
