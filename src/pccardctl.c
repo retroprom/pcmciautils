@@ -390,7 +390,6 @@ static char *cmdname[] = {
 	"reset",
 	"info",
 	"status",
-	"config",
 	"ident",
 };
 
@@ -687,7 +686,6 @@ enum {
 	PCCARDCTL_RESET,
 	PCCARDCTL_INFO,
 	PCCARDCTL_STATUS,
-	PCCARDCTL_CONFIG,
 	PCCARDCTL_IDENT,
 	NCMD
 };
@@ -805,11 +803,6 @@ int main(int argc, char **argv)
 		case PCCARDCTL_STATUS:
 			ret = pccardctl_status(cont);
 			break;
-		default:
-			fprintf(stderr,
-				"command '%s' not yet handled by pccardctl\n",
-				cmdname[cmd]);
-			return -EAGAIN;
 		}
 
 		if (ret && socket_is_set)
