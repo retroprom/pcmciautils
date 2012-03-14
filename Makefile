@@ -76,7 +76,7 @@ sbindir =	${exec_prefix}/sbin
 mandir =	${prefix}/usr/share/man
 udevdir =	${prefix}/lib/udev
 
-INSTALL = /usr/bin/install -c
+INSTALL = install -c
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_DATA  = ${INSTALL} -m 644
 INSTALL_SCRIPT = ${INSTALL_PROGRAM}
