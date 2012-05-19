@@ -27,7 +27,7 @@
 extern char *current_file;
 extern int current_lineno;
 
-void yyerror(char *msg, ...);
+void yyerror(char const *msg, ...);
 int yylex(void);
 
 %}
@@ -113,7 +113,7 @@ resource: IRQ_NO NUMBER
 	;
 
 %%
-void yyerror(char *msg, ...)
+void yyerror(char const *msg, ...)
 {
      va_list ap;
      char str[256];
