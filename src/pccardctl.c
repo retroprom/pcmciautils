@@ -154,11 +154,21 @@ static int pccardctl_get_string(unsigned long socket_no,
 				const char *in_file, char **output)
 {
 	char file[SYSFS_PATH_MAX];
+	int ret;
 
 	snprintf(file, SYSFS_PATH_MAX, "/sys/bus/pcmcia/devices/%lu.0/%s",
 		 socket_no, in_file);
 
-	return sysfs_read_whole_file(file, output);
+	ret = sysfs_read_whole_file(file, output);
+
+	if (ret)
+		return ret;
+
+	/* remove trailing '\n', as it messes up formatting and crc32 */
+	if ((strlen(*output) > 2) && ((*output)[strlen(*output) - 1] == '\n'))
+		(*output)[strlen(*output) - 1] = '\0';
+
+	return 0;
 }
 
 static int pccardctl_get_one_f(unsigned long socket_no, unsigned int dev,
